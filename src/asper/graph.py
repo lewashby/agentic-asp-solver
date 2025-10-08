@@ -1,4 +1,3 @@
-
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
@@ -17,7 +16,6 @@ async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
     """
     Create the complete ASP multi-agent system
     """
-    
     # Initialize LLM
     llm = ChatOpenAI(
         model=config.model_name,
@@ -85,7 +83,6 @@ async def solve_asp_problem(
     Returns:
         dict with final ASP code, validation status, and history
     """
-    
     # Create the system
     mcp_client = MultiServerMCPClient(config.mcp_server_config)
     async with mcp_client.session("mcp-solver") as session:
