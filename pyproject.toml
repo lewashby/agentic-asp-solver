@@ -1,0 +1,70 @@
+[project]
+name = "agentic-asp-solver"
+version = "0.0.1"
+description = "A lightweight ASP coding agent that generates, runs, and refines logic programs through natural language instructions."
+authors = [
+    { name = "Luis Angel Rodriguez Reiners" },
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+
+keywords = ["ai", "coding", "agent", "llm", "code-generation", "automation", "asp", "answer-set-programming"]
+
+dependencies = [
+    "langchain-mcp-adapters>=0.1.10",
+    "langchain-openai>=0.3.33",
+    "langgraph>=0.6.7",
+    "langgraph-cli[inmem]>=0.4.2",
+    "python-dotenv>=1.1.1",
+]
+
+
+[project.optional-dependencies]
+dev = ["mypy>=1.18.2", "ruff>=0.13.1"]
+
+[build-system]
+requires = ["setuptools>=80.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["asper"]
+[tool.setuptools.package-dir]
+"asper" = "src/asper"
+
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.ruff]
+lint.select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "D",    # pydocstyle
+    "D401", # First line should be in imperative mood
+    "T201",
+    "UP",
+]
+lint.ignore = [
+    "UP006",
+    "UP007",
+    # We actually do want to import from typing_extensions
+    "UP035",
+    # Relax the convention by _not_ requiring documentation for every function parameter.
+    "D417",
+    "E501",
+]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "UP"]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[dependency-groups]
+dev = [
+    "anyio>=4.10.0",
+    "langgraph-cli[inmem]>=0.4.2",
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "ruff>=0.13.1",
+]

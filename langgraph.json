@@ -1,0 +1,9 @@
+{
+  "$schema": "https://langgra.ph/schema.json",
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./src/asper/graph.py:create_asp_system"
+  },
+  "env": ".env",
+  "image_distro": "wolfi"
+}
