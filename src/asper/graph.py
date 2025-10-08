@@ -9,7 +9,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from asper.config import ASPSystemConfig
 from asper.state import ASPState
 from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
-from asper.react_agent import should_continue, solver_node, validator_node
+from asper.workflow import should_continue, solver_node, validator_node
 
 
 async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
