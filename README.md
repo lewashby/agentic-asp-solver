@@ -57,6 +57,28 @@ cp .env.example .env
 asper -h
 ```
 
+### LLM backend (Ollama)
+
+- This project uses Ollama as the LLM backend by default (`http://localhost:11434/v1`). Ensure an Ollama server is running.
+- Install Ollama from `https://ollama.com` and start the server (on most systems it runs automatically). To start manually:
+
+```bash
+ollama serve
+```
+
+- Pull or choose a local model:
+
+```bash
+ollama pull gpt-oss:20b
+```
+
+- Optionally set the model via `.env`:
+
+```bash
+MODEL_NAME=gpt-oss:20b
+# OPENAI_BASE_URL and OPENAI_API_KEY can be left at defaults for Ollama
+```
+
 ## Examples
 
 ### Birds Fly
