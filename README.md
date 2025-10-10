@@ -22,13 +22,15 @@ This project implements a multi-agent system that can:
 
 [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-1. **Install dependencies**:
+**Install dependencies**:
+
 ```bash
 uv sync
 uv pip install -e .
 ```
 
-2. **Install MCP Solver**:
+**Install MCP Solver**:
+
 ```bash
 # Clone the MCP Solver repository
 git clone https://github.com/szeider/mcp-solver.git
@@ -39,15 +41,18 @@ uv pip install -e ".[asp]"  # Install asp solver
 # Check the installation instructions in the MCP Solver README
 ```
 
-3. **Set up environment**:
+**Set up environment**:
+
 ```bash
 cp .env.example .env
 # Add your OpenAI API key and MCP Solver configuration
 # IMPORTANT!!!
-# UPDATE THE .ENV VARIABLE MCP_SOLVER_PATH
+# Update the .env variable MCP_SOLVER_ARGS with the MCP Solver absolute path
+# MCP_SOLVER_ARGS=--directory,MCP_SOLVER_PATH,run,mcp-solver-asp
 ```
 
-4. **Run**:
+**Run**:
+
 ```bash
 asper -h
 ```
