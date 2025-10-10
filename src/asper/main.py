@@ -1,5 +1,7 @@
 import os
 import asyncio
+import argparse
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -8,46 +10,96 @@ from asper.config import ASPSystemConfig
 from asper.graph import solve_asp_problem
 
 
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Agentic ASP solver CLI")
+    parser.add_argument(
+        "problem_file",
+        type=Path,
+        help="Path to a text/markdown file with the problem description",
+    )
+    parser.add_argument(
+        "--solver-prompt",
+        type=Path,
+        default=None,
+        help="Path to a custom solver system prompt file",
+    )
+    parser.add_argument(
+        "--validator-prompt",
+        type=Path,
+        default=None,
+        help="Path to a custom validator system prompt file",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LLM model name (overrides env or default)",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=None,
+        help="Maximum number of solver/validator iterations",
+    )
+    return parser
+
+
+def read_text_file(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    return text
+
+
 async def main():
-    
+    parser = build_arg_parser()
+    args = parser.parse_args()
+
+    # Load environment variables from .env
+    # Already called at import, keep for clarity if moved
+    # load_dotenv()
+
+    # Resolve prompts
+    solver_prompt = (
+        read_text_file(args.solver_prompt) if args.solver_prompt else None
+    )
+    validator_prompt = (
+        read_text_file(args.validator_prompt) if args.validator_prompt else None
+    )
+
+    # Configure system
+    model_name = args.model or os.getenv("MODEL_NAME")
+    max_iterations = args.max_iterations or int(os.getenv("MAX_ITERATIONS", "5"))
+
+    mcp_args_env = os.getenv("MCP_SOLVER_ARGS", "")
+    mcp_args = [arg for arg in mcp_args_env.split(',') if arg] if mcp_args_env else []
+
     config = ASPSystemConfig(
-        model_name=os.getenv("MODEL_NAME"),  # or your preferred Ollama model
-        base_url=os.getenv("OPENAI_BASE_URL"),
-        api_key=os.getenv("OPENAI_API_KEY"),
+        model_name=model_name,  # or your preferred Ollama model
+        base_url=os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
+        api_key=os.getenv("OPENAI_API_KEY", "ollama"),
         mcp_server_config={
             "mcp-solver": {
                 "command": os.getenv("MCP_SOLVER_COMMAND"),
-                "args": os.getenv("MCP_SOLVER_ARGS").split(','),
-                "transport": os.getenv("MCP_SOLVER_TRANSPORT")
+                "args": mcp_args,
+                "transport": os.getenv("MCP_SOLVER_TRANSPORT"),
             }
         },
-        max_iterations=int(os.getenv("MAX_ITERATIONS"))
+        max_iterations=max_iterations,
     )
-    
-    # Example problem
-    problem = """
-    Model a graph coloring problem with 4 nodes and the following edges:
-    - Node 1 connects to nodes 2 and 3
-    - Node 2 connects to nodes 1, 3, and 4
-    - Node 3 connects to nodes 1, 2, and 4
-    - Node 4 connects to nodes 2 and 3
-    
-    Find a valid 3-coloring of this graph where adjacent nodes have different colors.
-    """
-    
-    # Solve the problem
-    result = await solve_asp_problem(problem, config)
-    
+
+    # Read problem description
+    problem = read_text_file(args.problem_file)
+
+    # Solve the problem (with optional prompt overrides)
+    result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
+
     # Display results
     print("=== ASP Multi-Agent System Results ===")
     print(f"\nSuccess: {result['success']}")
     print(f"Iterations: {result['iterations']}")
     print(f"\nFinal ASP Code:\n{result['asp_code']}")
-    print(f"\nValidation History:")
-    for record in result['validation_history']:
-        print(f"{record}")
     print(f"\nFinal Message: {result['message']}")
 
 
-if __name__ == "__main__":
-    asyncio.run(main())    
+def cli() -> None:
+    """Console script entrypoint"""
+    asyncio.run(main())

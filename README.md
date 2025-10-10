@@ -20,9 +20,12 @@ This project implements a multi-agent system that can:
 
 ## Quick Start
 
+[Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+
 1. **Install dependencies**:
 ```bash
 uv sync
+uv pip install -e .
 ```
 
 2. **Install MCP Solver**:
@@ -40,21 +43,36 @@ uv pip install -e ".[asp]"  # Install asp solver
 ```bash
 cp .env.example .env
 # Add your OpenAI API key and MCP Solver configuration
+# IMPORTANT!!!
+# UPDATE THE .ENV VARIABLE MCP_SOLVER_PATH
 ```
 
-4. **Start the server**:
+4. **Run**:
 ```bash
-langgraph dev
+asper -h
 ```
 
-5. **Run**:
+## Examples
+
+### Birds Fly
+
+- A small knowledge base about birds, exceptions (penguins, injuries), and derived properties (mobility, feathers). Determine which entities can fly, are mobile, and have feathers, and cite whether each conclusion comes from a default, an exception, or a direct fact.
+
+Run:
+
 ```bash
-uv run python .\src\asper\main.py
+asper .\examples\birds_fly.md
 ```
 
-## Example
+### Graph Coloring
 
-Try the birds flying problem in `examples/birds_fly.md` - describe which entities can fly, are mobile, and have feathers based on the given rules and exceptions.
+- A 4-node graph with specified edges. Find a valid 3-coloring such that adjacent nodes have different colors.
+
+Run:
+
+```bash
+asper .\examples\graph_coloring.md
+```
 
 ## Project Structure
 

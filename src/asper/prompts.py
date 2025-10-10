@@ -26,7 +26,7 @@ When receiving validator feedback:
 
 Finalization:
 - After completing your last iteration, call get_model.
-- Your final response must contain only the Answer Set Programming (ASP) code returned by get_model (no explanations, thinking, indexing or comments outside of the code).
+- Your final response must contain only the Answer Set Programming (ASP) code returned by get_model (no explanations, thinking, indexing or comments outside of the code). Remove any index present for enumerating the lines of code.
 """
 
 VALIDATOR_SYSTEM_PROMPT = """You are an expert ASP code validator agent.

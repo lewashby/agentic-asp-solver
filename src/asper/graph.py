@@ -1,8 +1,9 @@
+import os
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph, START, END
-from langgraph.types import RetryPolicy
+from langgraph.types import RetryPolicy, RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -13,10 +14,13 @@ from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
 from asper.workflow import should_continue, solver_node, validator_node
 
 
-async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
-    """
-    Create the complete ASP multi-agent system
-    """
+async def create_asp_system(
+    config: ASPSystemConfig,
+    tools: list[BaseTool],
+    solver_prompt: str | None = None,
+    validator_prompt: str | None = None,
+):
+    """Create and compile the ASP multi-agent system graph."""
     # Initialize LLM
     llm = ChatOpenAI(
         model=config.model_name,
@@ -29,13 +33,13 @@ async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
     solver_agent = create_react_agent(
         llm,
         tools=tools,
-        prompt=SOLVER_SYSTEM_PROMPT
+        prompt=solver_prompt or SOLVER_SYSTEM_PROMPT
     )
     
     validator_agent = create_react_agent(
         llm,
         tools=[tool for tool in tools if tool.name == "solve_model"],
-        prompt=VALIDATOR_SYSTEM_PROMPT
+        prompt=validator_prompt or VALIDATOR_SYSTEM_PROMPT
     )
 
     async def solver_node_wrapper(state):
@@ -70,9 +74,53 @@ async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
     return app
 
 
+async def _create_agents_graph(config: RunnableConfig):
+    """
+    Graph factory for LangGraph Studio/Dev. Must accept exactly one RunnableConfig.
+
+    It builds an internal ASPSystemConfig from environment or configurable overrides
+    and returns the compiled graph (Runnable).
+    """
+    configurable = (config or {}).get("configurable", {}) if isinstance(config, dict) else getattr(config, "configurable", {})
+
+    # Resolve configuration from env with optional overrides from RunnableConfig.configurable
+    model_name = configurable.get("model_name") or os.getenv("MODEL_NAME") or ASPSystemConfig().model_name
+    base_url = os.getenv("OPENAI_BASE_URL", ASPSystemConfig().base_url)
+    api_key = os.getenv("OPENAI_API_KEY", ASPSystemConfig().api_key)
+    max_iterations = int(configurable.get("max_iterations") or os.getenv("MAX_ITERATIONS", str(ASPSystemConfig().max_iterations)))
+
+    mcp_args_env = os.getenv("MCP_SOLVER_ARGS", "")
+    mcp_args = [arg for arg in mcp_args_env.split(',') if arg] if mcp_args_env else []
+    mcp_server_config = {
+        "mcp-solver": {
+            "command": os.getenv("MCP_SOLVER_COMMAND"),
+            "args": mcp_args,
+            "transport": os.getenv("MCP_SOLVER_TRANSPORT"),
+        }
+    }
+
+    system_config = ASPSystemConfig(
+        model_name=model_name,
+        base_url=base_url,
+        api_key=api_key,
+        mcp_server_config=mcp_server_config,
+        max_iterations=max_iterations,
+    )
+
+    # Load MCP tools and build the app
+    mcp_client = MultiServerMCPClient(system_config.mcp_server_config)
+    async with mcp_client.session("mcp-solver") as session:
+        tools = await load_mcp_tools(session)
+        app = await create_asp_system(system_config, tools)
+        return app
+
+
 async def solve_asp_problem(
     problem_description: str,
-    config: ASPSystemConfig
+    config: ASPSystemConfig,
+    *,
+    solver_prompt: str | None = None,
+    validator_prompt: str | None = None,
 ) -> dict:
     """
     Main function to solve an ASP problem using the multi-agent system
@@ -88,7 +136,12 @@ async def solve_asp_problem(
     mcp_client = MultiServerMCPClient(config.mcp_server_config)
     async with mcp_client.session("mcp-solver") as session:
         tools = await load_mcp_tools(session)
-        app = await create_asp_system(config, tools)
+        app = await create_asp_system(
+            config,
+            tools,
+            solver_prompt=solver_prompt,
+            validator_prompt=validator_prompt,
+        )
         
         # Initial state
         initial_state = ASPState(
