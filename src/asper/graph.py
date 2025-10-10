@@ -2,9 +2,10 @@ import os
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
+from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import RetryPolicy, RunnableConfig
-from langgraph.prebuilt import create_react_agent
+from langgraph.prebuilt import create_react_agent, ToolNode
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
@@ -21,6 +22,9 @@ async def create_asp_system(
     validator_prompt: str | None = None,
 ):
     """Create and compile the ASP multi-agent system graph."""
+
+    tool_error_message="An error occurred invoking the tool. Please try differently."
+
     # Initialize LLM
     llm = ChatOpenAI(
         model=config.model_name,
@@ -32,13 +36,13 @@ async def create_asp_system(
     # Create ReAct agents
     solver_agent = create_react_agent(
         llm,
-        tools=tools,
+        tools=ToolNode(tools=tools, handle_tool_errors=tool_error_message),
         prompt=solver_prompt or SOLVER_SYSTEM_PROMPT
     )
     
     validator_agent = create_react_agent(
         llm,
-        tools=[tool for tool in tools if tool.name == "solve_model"],
+        tools=ToolNode(tools=[tool for tool in tools if tool.name in ["solve_model", "add_item"]], handle_tool_errors=tool_error_message),
         prompt=validator_prompt or VALIDATOR_SYSTEM_PROMPT
     )
 
@@ -145,6 +149,7 @@ async def solve_asp_problem(
         
         # Initial state
         initial_state = ASPState(
+            messages=[HumanMessage(content=problem_description)],
             problem_description=problem_description,
             max_iterations=config.max_iterations
         )
