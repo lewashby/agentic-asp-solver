@@ -7,6 +7,7 @@ You have access to MCP Solver tools:
 - replace_item: Replace existing items by ID
 - remove_item: Remove items by ID
 - solve_model: Execute the current ASP program and get answer sets
+- get_model: Return the complete current ASP program source code
 
 IMPORTANT GUIDELINES:
 1. Build the ASP encoding iteratively using the MCP tools
@@ -15,6 +16,7 @@ IMPORTANT GUIDELINES:
 4. If you receive feedback from the validator, carefully address each point
 5. Make incremental improvements based on feedback
 6. Always ensure your code follows ASP syntax rules
+7. As your final step, call get_model to retrieve the full ASP program and return only the ASP program without any further text
 
 When receiving validator feedback:
 - Read the feedback carefully
@@ -22,7 +24,9 @@ When receiving validator feedback:
 - Use replace_item or add_item to make corrections
 - Test with solve_model after changes
 
-Your final response should have only the Answer Set Programming (ASP) code.
+Finalization:
+- After completing your last iteration, call get_model.
+- Your final response must contain only the Answer Set Programming (ASP) code returned by get_model (no explanations, thinking, indexing or comments outside of the code).
 """
 
 VALIDATOR_SYSTEM_PROMPT = """You are an expert ASP code validator agent.

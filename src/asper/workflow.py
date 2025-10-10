@@ -1,10 +1,11 @@
 from typing import Literal
 from langgraph.graph.state import CompiledStateGraph
+from langchain_core.messages import AnyMessage, HumanMessage
 from asper.state import ASPState
 
-async def call_agent(message: str, agent: CompiledStateGraph):
+async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
      messages = []
-     async for chunk in agent.astream({"messages": [("user", message)]}, stream_mode="updates"):
+     async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
           if chunk:
                node_name = next(iter(chunk.keys()))
                node_output = chunk[node_name]
@@ -15,50 +16,57 @@ async def call_agent(message: str, agent: CompiledStateGraph):
                                    operation_name = operation.get("name")
                                    print(f"Node {node_name} called operation {operation_name}")
                          else:
-                              outcome = "failed" if "Failed" in msg.content else "success"
-                              print(f"Node {node_name} operation {outcome}")
+                              if node_name == "tools":
+                                   outcome = "failed" if "Failed" in msg.content else "success"
+                                   print(f"Node {node_name} operation {outcome}")
                          messages.append(msg)
      return {"messages": messages}
 
-def create_solver_message(state: ASPState, is_first_iteration: bool) -> str:
+def create_solver_message(state: ASPState, is_first_iteration: bool) -> list[AnyMessage]:
      """Create focused message for solver agent"""
      if is_first_iteration:
-          return f"""Problem to solve:
+          content = f"""Problem to solve:
+
 {state.problem_description}
 
 Please create an ASP encoding for this problem using the MCP Solver tools.
 Build the encoding step by step and test it with solve_model when ready."""
+          return [HumanMessage(content=content)]
      else:
-          return f"""The validator provided this feedback on your ASP code:
+          messages = state.messages
+          content = f"""A validator expert in Answer Set Programming provided this feedback on your ASP code:
 
-{state.last_feedback}
-
-Current ASP code state:
-{state.asp_code if state.asp_code else "No code yet"}
-
+{state.last_feedback if state.last_feedback else "The code do not model correctly the problem."}
+{f"\n\nCurrent ASP code state:\n{state.asp_code}\n\n" if state.asp_code else ""}
 Please address the feedback and improve the encoding using the MCP Solver tools."""
+          
+          messages.append(HumanMessage(content=content))
+          return messages
 
-def create_validator_message(state: ASPState) -> str:
+def create_validator_message(state: ASPState) -> list[AnyMessage]:
      """Create focused message for validator agent"""
-     return f"""Original problem:
+     content = f"""Original problem:
 {state.problem_description}
 
 ASP code to validate:
-{state.asp_code}
+
+{f"{state.asp_code}" if state.asp_code else "No code yet"}
 
 Please validate this ASP code against the problem requirements.
 Use solve_model to test it and provide clear feedback on whether it's correct."""
+     return [HumanMessage(content=content)]
 
-async def solver_node(state: ASPState, solver_agent) -> dict:
+async def solver_node(state: ASPState, solver_agent: CompiledStateGraph) -> dict:
      """
      Solver agent node - generates or improves ASP code
      """
      print("\n###### Called Solver Agent ######\n")
+
      is_first = state.iteration_count == 0
-     message = create_solver_message(state, is_first)
+     messages = create_solver_message(state, is_first)
 
      # Invoke the solver ReAct agent
-     result = await call_agent(message, solver_agent)
+     result = await call_agent(messages, solver_agent)
 
      return {
           "iteration_count": state.iteration_count + 1,
@@ -68,12 +76,19 @@ async def solver_node(state: ASPState, solver_agent) -> dict:
           "last_feedback": ""
      }
 
-async def validator_node(state: ASPState, validator_agent) -> dict:
+async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -> dict:
      """
      Validator agent node - validates ASP code
      """
      message = create_validator_message(state)
      print("\n###### Called Validator Agent ######\n")
+
+     if state.asp_code == "":
+          return {
+               "is_validated": False,
+               "messages": state.messages,
+               "last_feedback": "No Answer Set Programming (ASP) code was provided. Please call get_model for obtaining the full ASP encoding."
+          }
 
      # Invoke the validator ReAct agent
      result = await call_agent(message, validator_agent)

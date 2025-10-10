@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph, START, END
+from langgraph.types import RetryPolicy
 from langgraph.prebuilt import create_react_agent
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -33,7 +34,7 @@ async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
     
     validator_agent = create_react_agent(
         llm,
-        tools=tools,
+        tools=[tool for tool in tools if tool.name == "solve_model"],
         prompt=VALIDATOR_SYSTEM_PROMPT
     )
 
@@ -47,8 +48,8 @@ async def create_asp_system(config: ASPSystemConfig, tools: list[BaseTool]):
     workflow = StateGraph(ASPState)
     
     # Add nodes (async wrappers ensure coroutines are awaited)
-    workflow.add_node("solver", solver_node_wrapper)
-    workflow.add_node("validator", validator_node_wrapper)
+    workflow.add_node("solver", solver_node_wrapper, retry_policy=RetryPolicy())
+    workflow.add_node("validator", validator_node_wrapper, retry_policy=RetryPolicy())
     
     # Add edges
     workflow.add_edge(START, "solver")
@@ -107,6 +108,7 @@ async def solve_asp_problem(
                 "success": final_state["is_validated"],
                 "asp_code": final_state["asp_code"],
                 "iterations": final_state["iteration_count"],
+                "messages_history": final_state["messages"],
                 "validation_history": final_state["validation_history"],
                 "message": final_state.get("last_feedback", "")
             }
