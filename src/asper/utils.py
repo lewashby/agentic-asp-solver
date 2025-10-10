@@ -44,7 +44,7 @@ def pretty_print_messages(update, last_message=False):
             pretty_print_message(m, indent=is_subgraph)
         print("\n")
 
-def load_prompt(prompt_path: Path):
+def read_text_file(prompt_path: Path) -> str:
     if not prompt_path.exists():
-        raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
-    return prompt_path.read_text()
+        raise FileNotFoundError(f"File not found: {prompt_path}")
+    return prompt_path.read_text(encoding="utf-8")

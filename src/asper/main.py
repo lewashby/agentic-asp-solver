@@ -8,6 +8,7 @@ load_dotenv()
 
 from asper.config import ASPSystemConfig
 from asper.graph import solve_asp_problem
+from asper.utils import read_text_file
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -43,19 +44,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     return parser
 
-
-def read_text_file(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    return text
-
-
 async def main():
     parser = build_arg_parser()
     args = parser.parse_args()
-
-    # Load environment variables from .env
-    # Already called at import, keep for clarity if moved
-    # load_dotenv()
 
     # Resolve prompts
     solver_prompt = (

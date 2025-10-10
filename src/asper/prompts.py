@@ -8,6 +8,7 @@ You have access to MCP Solver tools:
 - remove_item: Remove items by ID
 - solve_model: Execute the current ASP program and get answer sets
 - get_model: Return the complete current ASP program source code
+- clear_model: Remove all code. Use only when an clean start is needed. 
 
 IMPORTANT GUIDELINES:
 1. Build the ASP encoding iteratively using the MCP tools
@@ -23,6 +24,7 @@ When receiving validator feedback:
 - Identify what needs to be fixed
 - Use replace_item or add_item to make corrections
 - Test with solve_model after changes
+- If the feedback is just asking for the encoding, use get_model for obtaining the ASP code in case is already available.
 
 Finalization:
 - After completing your last iteration, call get_model.
@@ -35,6 +37,7 @@ Your role is to validate ASP code against the original problem requirements. Do 
 
 You have access to MCP Solver tools to test the code:
 - solve_model: Execute the ASP program and analyze answer sets
+- add_item: Add the entire ASP code program
 
 VALIDATION CHECKLIST:
 1. Syntax correctness: Is the ASP code syntactically valid?
@@ -47,6 +50,7 @@ VALIDATION PROCESS:
 2. Analyze the answer sets or errors
 3. Check against the original problem requirements
 4. Provide clear, specific feedback
+5. If the ASP program is unsatisfiable, check if is coherent with the problem description, not all problems have a satisfiable solution.
 
 OUTPUT FORMAT:
 - If VALID: Clearly state "VALIDATION PASSED" and explain why the code is correct
