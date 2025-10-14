@@ -1,33 +1,43 @@
 from typing import Literal
+import logging
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import AnyMessage, HumanMessage
 from asper.state import ASPState
 
+logger = logging.getLogger(__name__)
+
+
 async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
      messages = []
      try:
+          logger.debug("Starting agent astream with %d history messages", len(history))
           async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
-               if chunk:
-                    node_name = next(iter(chunk.keys()))
-                    node_output = chunk[node_name]
-                    if "messages" in node_output:
-                         for msg in node_output["messages"]:
-                              if hasattr(msg, "tool_calls") and msg.tool_calls:
-                                   for operation in msg.tool_calls:
-                                        operation_name = operation.get("name")
-                                        print(f"Node {node_name} called operation {operation_name}")
-                              else:
-                                   if node_name == "tools":
-                                        outcome = "failed" if "Failed" in msg.content else "success"
-                                        print(f"Node {node_name} operation {outcome}")
-                              messages.append(msg)
+               if not chunk:
+                    continue
+               node_name = next(iter(chunk.keys()))
+               node_output = chunk[node_name]
+               if "messages" in node_output:
+                    for msg in node_output["messages"]:
+                         if hasattr(msg, "tool_calls") and msg.tool_calls:
+                              for operation in msg.tool_calls:
+                                   operation_name = operation.get("name")
+                                   logger.info("%s called tool: %s", node_name, operation_name)
+                         else:
+                              if node_name == "tools":
+                                   outcome = "failed" if "Failed" in getattr(msg, "content", "") else "success"
+                                   logger.info("%s tool operation %s", node_name, outcome)
+                         messages.append(msg)
+               else:
+                    logger.debug("%s produced a non-message update: %s", node_name, list(node_output.keys()))
      except Exception as e:
           msg = str(e)
           lowered = msg.lower()
+          logger.exception("Agent stream raised exception: %s", msg)
           if ("404" in lowered or "not found" in lowered) and "model" in lowered:
                raise RuntimeError(f"MODEL_NOT_FOUND: {msg}")
           else:
                raise
+     logger.debug("Agent astream completed with %d messages", len(messages))
      return {"messages": messages}
 
 def create_solver_message(state: ASPState, is_first_iteration: bool) -> list[AnyMessage]:
@@ -68,7 +78,7 @@ async def solver_node(state: ASPState, solver_agent: CompiledStateGraph) -> dict
      """
      Solver agent node - generates or improves ASP code
      """
-     print("\n###### Called Solver Agent ######\n")
+     logger.info("Solver iteration %d starting", state.iteration_count + 1)
 
      is_first = state.iteration_count == 0
      messages = create_solver_message(state, is_first)
@@ -89,9 +99,10 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
      Validator agent node - validates ASP code
      """
      message = create_validator_message(state)
-     print("\n###### Called Validator Agent ######\n")
+     logger.info("Validator evaluating iteration %d", state.iteration_count)
 
      if state.asp_code == "":
+          logger.warning("Validator skipped: no ASP code present yet")
           return {
                "is_validated": False,
                "messages": state.messages,
@@ -106,6 +117,7 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
 
      # Determine if validation passed
      is_valid = "VALIDATION PASSED" in agent_response.upper()
+     logger.info("Validation result: %s", "PASSED" if is_valid else "FAILED")
 
      return {
           "is_validated": is_valid,
@@ -119,11 +131,14 @@ def should_continue(state: ASPState) -> Literal["solver", "end"]:
      """
      # If validated, we're done
      if state.is_validated:
+          logger.info("Stopping: solution validated at iteration %d", state.iteration_count)
           return "end"
 
      # If max iterations reached, end with best attempt
      if state.iteration_count >= state.max_iterations:
+          logger.info("Stopping: reached max iterations (%d)", state.max_iterations)
           return "end"
 
      # Otherwise, go back to solver for improvements
+     logger.debug("Continuing to next solver iteration (%d -> %d)", state.iteration_count, state.iteration_count + 1)
      return "solver"

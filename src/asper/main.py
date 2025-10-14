@@ -1,4 +1,5 @@
 import os
+import logging
 import asyncio
 import argparse
 from pathlib import Path
@@ -45,6 +46,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 async def main():
+    # Configure logging once for the CLI
+    log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, log_level_name, logging.INFO)
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s - %(message)s")
+
     parser = build_arg_parser()
     args = parser.parse_args()
 
