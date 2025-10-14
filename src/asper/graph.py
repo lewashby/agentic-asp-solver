@@ -9,6 +9,7 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from asper.config import ASPSystemConfig
+from asper.errors import _root_cause_message
 from asper.llm import build_llm
 from asper.state import ASPState
 from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
@@ -130,41 +131,60 @@ async def solve_asp_problem(
         dict with final ASP code, validation status, and history
     """
     # Create the system
-    mcp_client = MultiServerMCPClient(config.mcp_server_config)
-    async with mcp_client.session("mcp-solver") as session:
-        tools = await load_mcp_tools(session)
-        llm = build_llm(config)
-        app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-        
-        # Initial state
-        initial_state = ASPState(
-            messages=[HumanMessage(content=problem_description)],
-            problem_description=problem_description,
-            max_iterations=config.max_iterations
-        )
-        
-        try:
-            # Run the graph
-            final_state = await app.ainvoke(
-                initial_state.model_dump(),
-                config={"configurable": {"thread_id": "asp-solver-session"}, "recursion_limit": 50},
+    try:
+        mcp_client = MultiServerMCPClient(config.mcp_server_config)
+        async with mcp_client.session("mcp-solver") as session:
+            try:
+                tools = await load_mcp_tools(session)
+            except Exception as e:
+                return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to load MCP tools: {_root_cause_message(e)}"}
+
+            try:
+                llm = build_llm(config)
+            except RuntimeError as e:
+                msg = str(e)
+                # Expect prefixed code like "AUTH: ..."
+                if ":" in msg:
+                    code, rest = msg.split(":", 1)
+                    return {"success": False, "error_code": code.strip(), "message": rest.strip()}
+                return {"success": False, "error_code": "UNKNOWN", "message": msg}
+            except Exception as e:
+                return {"success": False, "error_code": "UNKNOWN", "message": _root_cause_message(e)}
+
+            app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
+            
+            # Initial state
+            initial_state = ASPState(
+                messages=[HumanMessage(content=problem_description)],
+                problem_description=problem_description,
+                max_iterations=config.max_iterations
             )
             
-            # Prepare result
-            result = {
-                "success": final_state["is_validated"],
-                "asp_code": final_state["asp_code"],
-                "iterations": final_state["iteration_count"],
-                "messages_history": final_state["messages"],
-                "validation_history": final_state["validation_history"],
-                "message": final_state.get("last_feedback", "")
-            }
-            
-            if not final_state["is_validated"]:
-                result["message"] = f"Max iterations ({config.max_iterations}) reached. Best attempt returned."
-            
-            return result
-            
-        except Exception as e:
-            # Handle error
-            print(f"Generic error: {e}")
+            try:
+                # Run the graph
+                final_state = await app.ainvoke(
+                    initial_state.model_dump(),
+                    config={"configurable": {"thread_id": "asp-solver-session"}, "recursion_limit": 50},
+                )
+                
+                # Prepare result
+                result = {
+                    "success": final_state["is_validated"],
+                    "asp_code": final_state["asp_code"],
+                    "iterations": final_state["iteration_count"],
+                    "messages_history": final_state["messages"],
+                    "validation_history": final_state["validation_history"],
+                    "message": final_state.get("last_feedback", "")
+                }
+                
+                if not final_state["is_validated"]:
+                    result["message"] = f"Max iterations ({config.max_iterations}) reached. Best attempt returned."
+                
+                return result
+                
+            except Exception as e:
+                if "MODEL_NOT_FOUND" in str(e):
+                    return {"success": False, "error_code": "LLM_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}    
+                return {"success": False, "error_code": "GRAPH_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}
+    except Exception as e:
+        return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to initialize MCP session: {_root_cause_message(e)}"}

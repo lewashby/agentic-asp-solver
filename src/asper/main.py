@@ -48,6 +48,17 @@ async def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
+    # Validate CLI parameters and resolve prompts
+    if not args.problem_file or not args.problem_file.exists():
+        print(f"Error: Problem file not found: {args.problem_file}")
+        raise SystemExit(2)
+    if args.solver_prompt and not args.solver_prompt.exists():
+        print(f"Error: Solver prompt file not found: {args.solver_prompt}")
+        raise SystemExit(2)
+    if args.validator_prompt and not args.validator_prompt.exists():
+        print(f"Error: Validator prompt file not found: {args.validator_prompt}")
+        raise SystemExit(2)
+
     # Resolve prompts
     solver_prompt = (
         read_text_file(args.solver_prompt) if args.solver_prompt else None
@@ -79,9 +90,19 @@ async def main():
 
     # Read problem description
     problem = read_text_file(args.problem_file)
+    if not problem.strip():
+        print("Error: Problem file is empty.")
+        raise SystemExit(2)
 
     # Solve the problem (with optional prompt overrides)
     result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
+    if not result.get("success", False):
+        code = result.get("error_code", "UNKNOWN")
+        msg = result.get("message", "An error occurred")
+        print("=== ASP Multi-Agent System Error ===")
+        print(f"Code: {code}")
+        print(f"Message: {msg}")
+        raise SystemExit(1)
 
     # Display results
     print("=== ASP Multi-Agent System Results ===")

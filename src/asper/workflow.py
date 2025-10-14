@@ -5,21 +5,29 @@ from asper.state import ASPState
 
 async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
      messages = []
-     async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
-          if chunk:
-               node_name = next(iter(chunk.keys()))
-               node_output = chunk[node_name]
-               if "messages" in node_output:
-                    for msg in node_output["messages"]:
-                         if hasattr(msg, "tool_calls") and msg.tool_calls:
-                              for operation in msg.tool_calls:
-                                   operation_name = operation.get("name")
-                                   print(f"Node {node_name} called operation {operation_name}")
-                         else:
-                              if node_name == "tools":
-                                   outcome = "failed" if "Failed" in msg.content else "success"
-                                   print(f"Node {node_name} operation {outcome}")
-                         messages.append(msg)
+     try:
+          async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
+               if chunk:
+                    node_name = next(iter(chunk.keys()))
+                    node_output = chunk[node_name]
+                    if "messages" in node_output:
+                         for msg in node_output["messages"]:
+                              if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                   for operation in msg.tool_calls:
+                                        operation_name = operation.get("name")
+                                        print(f"Node {node_name} called operation {operation_name}")
+                              else:
+                                   if node_name == "tools":
+                                        outcome = "failed" if "Failed" in msg.content else "success"
+                                        print(f"Node {node_name} operation {outcome}")
+                              messages.append(msg)
+     except Exception as e:
+          msg = str(e)
+          lowered = msg.lower()
+          if ("404" in lowered or "not found" in lowered) and "model" in lowered:
+               raise RuntimeError(f"MODEL_NOT_FOUND: {msg}")
+          else:
+               raise
      return {"messages": messages}
 
 def create_solver_message(state: ASPState, is_first_iteration: bool) -> list[AnyMessage]:
