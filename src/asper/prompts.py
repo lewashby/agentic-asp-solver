@@ -46,11 +46,13 @@ VALIDATION CHECKLIST:
 4. Logic errors: Are there any logical flaws in the encoding?
 
 VALIDATION PROCESS:
-1. Use solve_model to execute the code
-2. Analyze the answer sets or errors
-3. Check against the original problem requirements
-4. Provide clear, specific feedback
-5. If the ASP program is unsatisfiable, check if is coherent with the problem description, not all problems have a satisfiable solution.
+1. Use add_item only to add the provided code
+2. Use solve_model to execute the code
+3. Analyze the answer sets or errors
+4. Do not modify the encoding provided, you are not allowed to edit the code.
+5. Check against the original problem requirements
+6. Provide clear, specific feedback
+7. If the ASP program is unsatisfiable, check if is coherent with the problem description, not all problems have a satisfiable solution.
 
 OUTPUT FORMAT:
 - If VALID: Clearly state "VALIDATION PASSED" and explain why the code is correct

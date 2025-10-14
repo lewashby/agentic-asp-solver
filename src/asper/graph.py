@@ -1,5 +1,4 @@
 import os
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
 from langchain_core.messages import HumanMessage
@@ -10,13 +9,14 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 from asper.config import ASPSystemConfig
+from asper.llm import build_llm
 from asper.state import ASPState
 from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
 from asper.workflow import should_continue, solver_node, validator_node
 
 
 async def create_asp_system(
-    config: ASPSystemConfig,
+    llm,
     tools: list[BaseTool],
     solver_prompt: str | None = None,
     validator_prompt: str | None = None,
@@ -24,14 +24,6 @@ async def create_asp_system(
     """Create and compile the ASP multi-agent system graph."""
 
     tool_error_message="An error occurred invoking the tool. Please try differently."
-
-    # Initialize LLM
-    llm = ChatOpenAI(
-        model=config.model_name,
-        temperature=config.temperature,
-        base_url=config.base_url,
-        api_key=config.api_key
-    )
     
     # Create ReAct agents
     solver_agent = create_react_agent(
@@ -115,7 +107,8 @@ async def _create_agents_graph(config: RunnableConfig):
     mcp_client = MultiServerMCPClient(system_config.mcp_server_config)
     async with mcp_client.session("mcp-solver") as session:
         tools = await load_mcp_tools(session)
-        app = await create_asp_system(system_config, tools)
+        llm = build_llm(system_config)
+        app = await create_asp_system(llm, tools)
         return app
 
 
@@ -140,12 +133,8 @@ async def solve_asp_problem(
     mcp_client = MultiServerMCPClient(config.mcp_server_config)
     async with mcp_client.session("mcp-solver") as session:
         tools = await load_mcp_tools(session)
-        app = await create_asp_system(
-            config,
-            tools,
-            solver_prompt=solver_prompt,
-            validator_prompt=validator_prompt,
-        )
+        llm = build_llm(config)
+        app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
         
         # Initial state
         initial_state = ASPState(

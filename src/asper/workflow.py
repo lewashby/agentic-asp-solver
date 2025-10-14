@@ -101,7 +101,6 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
 
      return {
           "is_validated": is_valid,
-          "messages": result["messages"],
           "last_feedback": agent_response,
           "validation_history": result["messages"]
      }
