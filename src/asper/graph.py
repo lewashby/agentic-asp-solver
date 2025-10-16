@@ -13,8 +13,10 @@ from asper.errors import _root_cause_message
 from asper.llm import build_llm
 from asper.state import ASPState
 from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
+from asper.utils import get_logger
 from asper.workflow import should_continue, solver_node, validator_node
 
+logger = get_logger()
 
 async def create_asp_system(
     llm,
@@ -68,6 +70,7 @@ async def create_asp_system(
     memory = InMemorySaver()
     app = workflow.compile(checkpointer=memory)
     
+    logger.info("Agents graph created")
     return app
 
 
@@ -131,6 +134,7 @@ async def solve_asp_problem(
         dict with final ASP code, validation status, and history
     """
     # Create the system
+    logger.info("Starting agents system")
     try:
         mcp_client = MultiServerMCPClient(config.mcp_server_config)
         async with mcp_client.session("mcp-solver") as session:
@@ -153,9 +157,10 @@ async def solve_asp_problem(
 
             app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
             
+            logger.info("Starting agents iterations")
             # Initial state
             initial_state = ASPState(
-                messages=[HumanMessage(content=problem_description)],
+                messages=[HumanMessage(content=f"Please read carefully and solve the following problem using Answer Set Programming (ASP)\n\n{problem_description}")],
                 problem_description=problem_description,
                 max_iterations=config.max_iterations
             )
@@ -183,8 +188,10 @@ async def solve_asp_problem(
                 return result
                 
             except Exception as e:
-                if "MODEL_NOT_FOUND" in str(e):
-                    return {"success": False, "error_code": "LLM_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}    
+                msg = str(e)
+                if ":" in msg:
+                    code, rest = msg.split(":", 1)
+                    return {"success": False, "error_code": code, "message": f"Execution failed: {rest}"}    
                 return {"success": False, "error_code": "GRAPH_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}
     except Exception as e:
         return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to initialize MCP session: {_root_cause_message(e)}"}

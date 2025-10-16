@@ -32,8 +32,3 @@ class ASPState(BaseModel):
     # Last validator feedback (for solver to see)
     last_feedback: str = ""
     
-    # Error messages
-    errors: Annotated[list, add_messages] = Field(default_factory=list)
-    
-    # Final status message
-    status_message: str = ""

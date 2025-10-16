@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from asper.config import ASPSystemConfig
 
 
-def build_llm(config: ASPSystemConfig):
+def build_llm(config: ASPSystemConfig) -> ChatOpenAI:
     """Construct and return a chat LLM instance based on the ASP system config.
 
     Minimal error mapping: raise RuntimeError with code prefix for simple handling.

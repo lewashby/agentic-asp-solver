@@ -1,5 +1,4 @@
 import os
-import logging
 import asyncio
 import argparse
 from pathlib import Path
@@ -7,9 +6,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from asper.utils import setup_logger
 from asper.config import ASPSystemConfig
 from asper.graph import solve_asp_problem
-from asper.utils import read_text_file
+from asper.utils import export_solution, read_text_file
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -46,10 +46,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 async def main():
-    # Configure logging once for the CLI
-    log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
-    level = getattr(logging, log_level_name, logging.INFO)
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s - %(message)s")
 
     parser = build_arg_parser()
     args = parser.parse_args()
@@ -64,14 +60,18 @@ async def main():
     if args.validator_prompt and not args.validator_prompt.exists():
         print(f"Error: Validator prompt file not found: {args.validator_prompt}")
         raise SystemExit(2)
+    
+    export_solution_path = Path(os.getenv("EXPORT_PATH", "results"))
+    logger = setup_logger(args.problem_file, os.getenv("LOG_LEVEL", "INFO").upper(), export_path=export_solution_path)
 
     # Resolve prompts
-    solver_prompt = (
-        read_text_file(args.solver_prompt) if args.solver_prompt else None
-    )
-    validator_prompt = (
-        read_text_file(args.validator_prompt) if args.validator_prompt else None
-    )
+    solver_prompt, validator_prompt = None, None
+    if (args.solver_prompt):
+        solver_prompt = read_text_file(args.solver_prompt)
+        logger.info(f"Loaded Solver Agent system prompt file: {args.solver_prompt}")
+    if (args.validator_prompt):
+        validator_prompt = read_text_file(args.validator_prompt)
+        logger.info(f"Loaded Validator Agent system prompt file: {args.solver_prompt}")
 
     # Configure system
     model_name = args.model or os.getenv("MODEL_NAME")
@@ -102,21 +102,20 @@ async def main():
 
     # Solve the problem (with optional prompt overrides)
     result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-    if not result.get("success", False):
-        code = result.get("error_code", "UNKNOWN")
-        msg = result.get("message", "An error occurred")
-        print("=== ASP Multi-Agent System Error ===")
-        print(f"Code: {code}")
-        print(f"Message: {msg}")
-        raise SystemExit(1)
 
-    # Display results
-    print("=== ASP Multi-Agent System Results ===")
-    print(f"\nSuccess: {result['success']}")
-    print(f"Iterations: {result['iterations']}")
-    print(f"\nFinal ASP Code:\n{result['asp_code']}")
-    print(f"\nFinal Message: {result['message']}")
-
+    if result["success"]:
+        file = export_solution(
+            args.problem_file, 
+            {"success": result["success"], 
+            "iterations": result["iterations"], 
+            "asp_code": result["asp_code"], 
+            "message": result["message"],
+            "error_code": result.get("error_code", "UNKNOWN")
+            },
+            export_path=export_solution_path
+        )
+        logger.info(f"Solution saved to file: {file}")
+    logger.info(f"Logs save to file: {export_solution_path / Path(args.problem_file).with_suffix(".log")}")
 
 def cli() -> None:
     """Console script entrypoint"""

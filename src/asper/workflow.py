@@ -3,8 +3,9 @@ import logging
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import AnyMessage, HumanMessage
 from asper.state import ASPState
+from asper.utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
@@ -24,7 +25,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                                    logger.info("%s called tool: %s", node_name, operation_name)
                          else:
                               if node_name == "tools":
-                                   outcome = "failed" if "Failed" in getattr(msg, "content", "") else "success"
+                                   outcome = "failed" if "Failed" in getattr(msg, "content", "") or "Error" in getattr(msg, "content", "") else "success"
                                    logger.info("%s tool operation %s", node_name, outcome)
                          messages.append(msg)
                else:
@@ -32,7 +33,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
      except Exception as e:
           msg = str(e)
           lowered = msg.lower()
-          logger.exception("Agent stream raised exception: %s", msg)
+          logger.error("Agent stream raised exception: %s", msg)
           if ("404" in lowered or "not found" in lowered) and "model" in lowered:
                raise RuntimeError(f"MODEL_NOT_FOUND: {msg}")
           else:
@@ -101,7 +102,7 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
      message = create_validator_message(state)
      logger.info("Validator evaluating iteration %d", state.iteration_count)
 
-     if state.asp_code == "":
+     if state.asp_code == "" or state.asp_code == "Sorry, need more steps to process this request.":
           logger.warning("Validator skipped: no ASP code present yet")
           return {
                "is_validated": False,
