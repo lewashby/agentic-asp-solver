@@ -21,6 +21,8 @@ dependencies = [
 
 [project.scripts]
 asper = "asper.main:cli"
+download-lpcp = "asper.scrapper:scrape_lpcp_problems"
+asper-batch = "asper.batch_runner:cli"
 
 [project.optional-dependencies]
 dev = ["mypy>=1.18.2", "ruff>=0.13.1"]
