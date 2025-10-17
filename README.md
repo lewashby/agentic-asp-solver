@@ -144,15 +144,15 @@ Examples:
 
 ```bash
 # Run only for 2022 and 2023
-uv run asper-batch --years 2022,2023
+asper-batch --years 2022,2023
 
 # Use custom prompts
-uv run asper-batch \
+asper-batch \
   --solver-prompt prompts/solver_instructions.md \
   --validator-prompt prompts/validator_instructions.md
 
 # Override model and iterations
-uv run asper-batch --model gpt-oss:20b --max-iterations 6
+asper-batch --model gpt-oss:20b --max-iterations 6
 ```
 
 Note: Ensure your environment variables (e.g., `MODEL_NAME`, `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and MCP settings like `MCP_SOLVER_ARGS`) are configured as described above before running the batch.
