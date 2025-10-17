@@ -108,7 +108,7 @@ asper .\examples\graph_coloring.md
 Use the built-in scraper to download LPCP problem descriptions (defaults to years 2020–2025) into the `lpcp_problems/` folder:
 
 ```bash
-uv run download-lpcp
+download-lpcp
 ```
 
 This will create a structure like:
@@ -128,7 +128,7 @@ lpcp_problems/
 After downloading, run the batch executor to solve each problem file. By default it scans `lpcp_problems/` and processes `problem-1.md` and `problem-2.md` in each year folder:
 
 ```bash
-uv run asper-batch
+asper-batch
 ```
 
 Common options:
