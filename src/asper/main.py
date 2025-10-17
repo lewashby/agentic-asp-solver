@@ -71,7 +71,7 @@ async def main():
         logger.info(f"Loaded Solver Agent system prompt file: {args.solver_prompt}")
     if (args.validator_prompt):
         validator_prompt = read_text_file(args.validator_prompt)
-        logger.info(f"Loaded Validator Agent system prompt file: {args.solver_prompt}")
+        logger.info(f"Loaded Validator Agent system prompt file: {args.validator_prompt}")
 
     # Configure system
     model_name = args.model or os.getenv("MODEL_NAME")
