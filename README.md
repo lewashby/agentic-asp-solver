@@ -101,6 +101,62 @@ Run:
 asper .\examples\graph_coloring.md
 ```
 
+## LPCP Problems
+
+### Download LPCP problem statements
+
+Use the built-in scraper to download LPCP problem descriptions (defaults to years 2020–2025) into the `lpcp_problems/` folder:
+
+```bash
+uv run download-lpcp
+```
+
+This will create a structure like:
+
+```
+lpcp_problems/
+  lpcp-2020/
+    problem-1.md
+    problem-2.md
+    ...
+  lpcp-2021/
+  ...
+```
+
+### Run asper across all LPCP problems
+
+After downloading, run the batch executor to solve each problem file. By default it scans `lpcp_problems/` and processes `problem-1.md` and `problem-2.md` in each year folder:
+
+```bash
+uv run asper-batch
+```
+
+Common options:
+
+- `--root PATH`: root folder with `lpcp-YYYY` subfolders (default: `lpcp_problems`)
+- `--years 2022,2023`: restrict to specific years (comma-separated)
+- `--solver-prompt PATH`: custom solver system prompt file
+- `--validator-prompt PATH`: custom validator system prompt file
+- `--model NAME`: LLM model override (otherwise uses `MODEL_NAME` env or default)
+- `--max-iterations N`: max solver/validator iterations
+
+Examples:
+
+```bash
+# Run only for 2022 and 2023
+uv run asper-batch --years 2022,2023
+
+# Use custom prompts
+uv run asper-batch \
+  --solver-prompt prompts/solver_instructions.md \
+  --validator-prompt prompts/validator_instructions.md
+
+# Override model and iterations
+uv run asper-batch --model gpt-oss:20b --max-iterations 6
+```
+
+Note: Ensure your environment variables (e.g., `MODEL_NAME`, `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and MCP settings like `MCP_SOLVER_ARGS`) are configured as described above before running the batch.
+
 ## Project Structure
 
 - `src/asper/` - Core agent implementation
