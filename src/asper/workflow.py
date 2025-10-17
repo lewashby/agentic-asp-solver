@@ -1,5 +1,4 @@
 from typing import Literal
-import logging
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import AnyMessage, HumanMessage
 from asper.state import ASPState
@@ -10,6 +9,11 @@ logger = get_logger()
 
 async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
      messages = []
+     stats = {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+     }
      try:
           logger.debug("Starting agent astream with %d history messages", len(history))
           async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
@@ -19,14 +23,23 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                node_output = chunk[node_name]
                if "messages" in node_output:
                     for msg in node_output["messages"]:
-                         if hasattr(msg, "tool_calls") and msg.tool_calls:
-                              for operation in msg.tool_calls:
-                                   operation_name = operation.get("name")
-                                   logger.info("%s called tool: %s", node_name, operation_name)
+                         if node_name == "tools":
+                              outcome = "failed" if "Failed" in getattr(msg, "content", "") or "Error" in getattr(msg, "content", "") else "success"
+                              logger.info("%s tool operation %s", node_name, outcome)
                          else:
-                              if node_name == "tools":
-                                   outcome = "failed" if "Failed" in getattr(msg, "content", "") or "Error" in getattr(msg, "content", "") else "success"
-                                   logger.info("%s tool operation %s", node_name, outcome)
+                              usage = msg.usage_metadata or msg.response_metadata.get("token_usage", {})
+                              input_tokens = usage.get("input_tokens") or usage.get("prompt_tokens", 0)
+                              output_tokens = usage.get("output_tokens") or usage.get("completion_tokens", 0)
+                              total_tokens = usage.get("total_tokens", 0)
+                              if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                   for operation in msg.tool_calls:
+                                        operation_name = operation.get("name")
+                                        logger.info("%s called tool: %s ---- Input Tokens: %s | Output Tokens: %s | Total Tokens: %s", node_name, operation_name, input_tokens, output_tokens, total_tokens)
+                              else:
+                                   logger.info("%s tool called LLM ---- Input Tokens: %s | Output Tokens: %s | Total Tokens: %s", node_name, input_tokens, output_tokens, total_tokens)
+                              stats["prompt_tokens"] = input_tokens
+                              stats["completion_tokens"] = output_tokens
+                              stats["total_tokens"] = total_tokens
                          messages.append(msg)
                else:
                     logger.debug("%s produced a non-message update: %s", node_name, list(node_output.keys()))
@@ -39,7 +52,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
           else:
                raise
      logger.debug("Agent astream completed with %d messages", len(messages))
-     return {"messages": messages}
+     return {"messages": messages, "statistics": stats}
 
 def create_solver_message(state: ASPState, is_first_iteration: bool) -> list[AnyMessage]:
      """Create focused message for solver agent"""

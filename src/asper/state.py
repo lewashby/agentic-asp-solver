@@ -28,7 +28,13 @@ class ASPState(BaseModel):
     
     # Validation status
     is_validated: bool = False
+
+    # Test status
+    is_tested: bool = False
     
     # Last validator feedback (for solver to see)
     last_feedback: str = ""
+
+    # Answer set solution
+    answer_set: str = ""
     
