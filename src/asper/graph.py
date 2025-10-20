@@ -13,7 +13,7 @@ from asper.errors import _root_cause_message
 from asper.llm import build_llm
 from asper.state import ASPState
 from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
-from asper.utils import get_logger
+from asper.utils import get_logger, read_text_file
 from asper.workflow import should_continue, solver_node, validator_node
 
 logger = get_logger()
@@ -117,24 +117,55 @@ async def _create_agents_graph(config: RunnableConfig):
 
 
 async def solve_asp_problem(
-    problem_description: str,
-    config: ASPSystemConfig,
-    *,
-    solver_prompt: str | None = None,
-    validator_prompt: str | None = None,
+    problem_file: str,
+    config: ASPSystemConfig
 ) -> dict:
     """
     Main function to solve an ASP problem using the multi-agent system
     
     Args:
-        problem_description: Natural language description of the problem
+        problem_file: File with natural language description of the problem
         config: System configuration
         
     Returns:
         dict with final ASP code, validation status, and history
     """
+    logger.info(f"Starting agents system -| model: {config.model_name}  max_iterations: {config.max_iterations}")
+
+    # Load file problem
+    try:
+        problem_description = read_text_file(problem_file)
+        if not problem_description.strip():
+            logger.error(f"Empty file: {problem_file}")
+            raise SystemExit(2)
+        logger.info(f"Problem file loaded: {problem_file}")
+    except Exception as e:
+        return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
+
+    # Load system prompts
+    solver_prompt = None
+    if config.solver_prompt_file:
+        try:
+            solver_prompt = read_text_file(config.solver_prompt_file)
+            if not solver_prompt.strip():
+                logger.error(f"Empty file: {config.solver_prompt_file}")
+                raise SystemExit(2)
+            logger.info(f"Loaded Solver Agent system prompt file: {config.solver_prompt_file}")
+        except Exception as e:
+            return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
+        
+    validator_prompt = None
+    if config.validator_prompt_file:
+        try:
+            validator_prompt = read_text_file(config.validator_prompt_file)
+            if not validator_prompt.strip():
+                logger.error(f"Empty file: {config.validator_prompt_file}")
+                raise SystemExit(2)
+            logger.info(f"Loaded Validator Agent system prompt file: {config.validator_prompt_file}")
+        except Exception as e:
+            return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
+
     # Create the system
-    logger.info("Starting agents system")
     try:
         mcp_client = MultiServerMCPClient(config.mcp_server_config)
         async with mcp_client.session("mcp-solver") as session:
@@ -154,7 +185,7 @@ async def solve_asp_problem(
                 return {"success": False, "error_code": "UNKNOWN", "message": msg}
             except Exception as e:
                 return {"success": False, "error_code": "UNKNOWN", "message": _root_cause_message(e)}
-
+            
             app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
             
             logger.info("Starting agents iterations")

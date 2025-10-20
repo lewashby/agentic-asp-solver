@@ -64,14 +64,6 @@ async def main():
     export_solution_path = Path(os.getenv("EXPORT_PATH", "results"))
     logger = setup_logger(args.problem_file, os.getenv("LOG_LEVEL", "INFO").upper(), export_path=export_solution_path)
 
-    # Resolve prompts
-    solver_prompt, validator_prompt = None, None
-    if (args.solver_prompt):
-        solver_prompt = read_text_file(args.solver_prompt)
-        logger.info(f"Loaded Solver Agent system prompt file: {args.solver_prompt}")
-    if (args.validator_prompt):
-        validator_prompt = read_text_file(args.validator_prompt)
-        logger.info(f"Loaded Validator Agent system prompt file: {args.validator_prompt}")
 
     # Configure system
     model_name = args.model or os.getenv("MODEL_NAME")
@@ -84,6 +76,8 @@ async def main():
         model_name=model_name,  # or your preferred Ollama model
         base_url=os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
         api_key=os.getenv("OPENAI_API_KEY", "ollama"),
+        solver_prompt_file=args.solver_prompt,
+        validator_prompt_file=args.validator_prompt,
         mcp_server_config={
             "mcp-solver": {
                 "command": os.getenv("MCP_SOLVER_COMMAND"),
@@ -94,30 +88,27 @@ async def main():
         max_iterations=max_iterations,
     )
 
-    # Read problem description
-    problem = read_text_file(args.problem_file)
-    if not problem.strip():
-        print("Error: Problem file is empty.")
-        raise SystemExit(2)
+    try:
+        # Solve the problem (with optional prompt overrides)
+        result = await solve_asp_problem(args.problem_file, config)
 
-    # Solve the problem (with optional prompt overrides)
-    result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-
-    if result and isinstance(result, dict):
-        file = export_solution(
-            args.problem_file, 
-            {"success": result["success"], 
-            "iterations": result["iterations"], 
-            "asp_code": result["asp_code"], 
-            "message": result["message"],
-            "error_code": result.get("error_code", "UNKNOWN"),
-            "statistics": result["statistics"]
-            },
-            export_path=export_solution_path
-        )
-        logger.info(f"Results saved to file: {file}")
-        logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
-    logger.info(f"Logs save to file: {export_solution_path / Path(args.problem_file).with_suffix(".log")}")
+        if result and isinstance(result, dict):
+            file = export_solution(
+                args.problem_file, 
+                {"success": result["success"], 
+                "iterations": result["iterations"], 
+                "asp_code": result["asp_code"], 
+                "message": result["message"],
+                "error_code": result.get("error_code", "UNKNOWN"),
+                "statistics": result["statistics"]
+                },
+                export_path=export_solution_path
+            )
+            logger.info(f"Results saved to file: {file}")
+            logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
+        logger.info(f"Logs save to file: {export_solution_path / Path(args.problem_file).with_suffix(".log")}")
+    except Exception as e:
+        logger.error(f"{e}")
 
 def cli() -> None:
     """Console script entrypoint"""

@@ -26,8 +26,7 @@ def find_problem_files(root: Path, years: list[str] | None = None) -> list[Path]
         if not year_dir.exists() or not year_dir.is_dir():
             continue
         for f in sorted(year_dir.glob("problem-*.md")):
-            if f.name in {"problem-1.md", "problem-2.md"}:
-                problem_files.append(f)
+            problem_files.append(f)
     return problem_files
 
 
@@ -72,13 +71,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def run_for_file(problem_file: Path, config: ASPSystemConfig, solver_prompt: str | None, validator_prompt: str | None) -> None:
+async def run_for_file(problem_file: Path, config: ASPSystemConfig) -> None:
     logger = setup_logger(problem_file, os.getenv("LOG_LEVEL", "INFO").upper())
     problem = read_text_file(problem_file)
     if not problem.strip():
         print(f"Skipped empty file: {problem_file}")
         return
-    result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
+    result = await solve_asp_problem(problem_file, config)
     if result and isinstance(result, dict):
         file = export_solution(
             problem_file,
@@ -93,7 +92,8 @@ async def run_for_file(problem_file: Path, config: ASPSystemConfig, solver_promp
         )
         logger.info(f"Results saved to file: {file}")
         logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
-    logger.error(f"Error executing ASPER for file {problem_file}")
+    else:
+        logger.error(f"Error executing ASPER for file {problem_file}")
 
 
 async def main() -> None:
@@ -110,9 +110,6 @@ async def main() -> None:
         print(f"Error: Validator prompt file not found: {args.validator_prompt}")
         raise SystemExit(2)
 
-    solver_prompt = read_text_file(args.solver_prompt) if args.solver_prompt else None
-    validator_prompt = read_text_file(args.validator_prompt) if args.validator_prompt else None
-
     model_name = args.model or os.getenv("MODEL_NAME")
     max_iterations = args.max_iterations or int(os.getenv("MAX_ITERATIONS", "5"))
 
@@ -123,6 +120,8 @@ async def main() -> None:
         model_name=model_name,
         base_url=os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
         api_key=os.getenv("OPENAI_API_KEY", "ollama"),
+        solver_prompt_file=args.solver_prompt,
+        validator_prompt_file=args.validator_prompt,
         mcp_server_config={
             "mcp-solver": {
                 "command": os.getenv("MCP_SOLVER_COMMAND"),
@@ -142,7 +141,7 @@ async def main() -> None:
     for pf in files:
         print(f"Running asper for {pf} ...")
         try:
-            await run_for_file(pf, config, solver_prompt, validator_prompt)
+            await run_for_file(pf, config)
         except Exception as e:
             print(f"Failed for {pf}: {e}")
 

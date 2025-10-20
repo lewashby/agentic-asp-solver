@@ -46,6 +46,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                          messages.append(msg)
                else:
                     logger.debug("%s produced a non-message update: %s", node_name, list(node_output.keys()))
+          logger.debug("Agent astream completed with %d messages", len(messages))
      except Exception as e:
           msg = str(e)
           lowered = msg.lower()
@@ -54,7 +55,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                raise RuntimeError(f"MODEL_NOT_FOUND: {msg}")
           else:
                raise
-     logger.debug("Agent astream completed with %d messages", len(messages))
+
      return {"messages": messages, "statistics": stats}
 
 def create_solver_message(state: ASPState, is_first_iteration: bool) -> list[AnyMessage]:
