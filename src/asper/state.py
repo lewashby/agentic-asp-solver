@@ -4,6 +4,11 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from langgraph.graph.message import add_messages
 
+def accumulate_stats(old_stats: dict, new_stats: dict) -> dict:
+    return {
+        key: old_stats.get(key, 0) + new_stats.get(key, 0)
+        for key in set(old_stats) | set(new_stats)
+    }
 
 class ASPState(BaseModel):
     """State for the ASP multi-agent system"""
@@ -37,4 +42,7 @@ class ASPState(BaseModel):
 
     # Answer set solution
     answer_set: str = ""
+
+    # Usage statistics
+    statistics: Annotated[dict, accumulate_stats] = { "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "tool_calls": 0 }
     

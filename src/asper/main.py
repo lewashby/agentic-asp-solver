@@ -103,18 +103,20 @@ async def main():
     # Solve the problem (with optional prompt overrides)
     result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
 
-    if result["success"]:
+    if result and isinstance(result, dict):
         file = export_solution(
             args.problem_file, 
             {"success": result["success"], 
             "iterations": result["iterations"], 
             "asp_code": result["asp_code"], 
             "message": result["message"],
-            "error_code": result.get("error_code", "UNKNOWN")
+            "error_code": result.get("error_code", "UNKNOWN"),
+            "statistics": result["statistics"]
             },
             export_path=export_solution_path
         )
-        logger.info(f"Solution saved to file: {file}")
+        logger.info(f"Results saved to file: {file}")
+        logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
     logger.info(f"Logs save to file: {export_solution_path / Path(args.problem_file).with_suffix(".log")}")
 
 def cli() -> None:

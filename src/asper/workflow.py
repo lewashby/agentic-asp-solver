@@ -12,7 +12,8 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
      stats = {
           "input_tokens": 0,
           "output_tokens": 0,
-          "total_tokens": 0
+          "total_tokens": 0,
+          "tool_calls": 0
      }
      try:
           logger.debug("Starting agent astream with %d history messages", len(history))
@@ -24,10 +25,12 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                if "messages" in node_output:
                     for msg in node_output["messages"]:
                          if node_name == "tools":
+                              operation_name = msg.name
+                              stats["tool_calls"] += 1
                               outcome = "failed" if "Failed" in getattr(msg, "content", "") or "Error" in getattr(msg, "content", "") else "success"
-                              logger.info("%s tool operation %s", node_name, outcome)
+                              logger.info("%s %s operation %s", node_name, operation_name, outcome)
                          else:
-                              usage = msg.usage_metadata or msg.response_metadata.get("token_usage", {})
+                              usage = getattr(msg, "usage_metadata", None) or msg.response_metadata.get("token_usage", {})
                               input_tokens = usage.get("input_tokens") or usage.get("prompt_tokens", 0)
                               output_tokens = usage.get("output_tokens") or usage.get("completion_tokens", 0)
                               total_tokens = usage.get("total_tokens", 0)
@@ -36,10 +39,10 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
                                         operation_name = operation.get("name")
                                         logger.info("%s called tool: %s ---- Input Tokens: %s | Output Tokens: %s | Total Tokens: %s", node_name, operation_name, input_tokens, output_tokens, total_tokens)
                               else:
-                                   logger.info("%s tool called LLM ---- Input Tokens: %s | Output Tokens: %s | Total Tokens: %s", node_name, input_tokens, output_tokens, total_tokens)
-                              stats["prompt_tokens"] = input_tokens
-                              stats["completion_tokens"] = output_tokens
-                              stats["total_tokens"] = total_tokens
+                                   logger.info("%s called LLM ---- Input Tokens: %s | Output Tokens: %s | Total Tokens: %s", node_name, input_tokens, output_tokens, total_tokens)
+                              stats["input_tokens"] += input_tokens
+                              stats["output_tokens"] += output_tokens
+                              stats["total_tokens"] += total_tokens
                          messages.append(msg)
                else:
                     logger.debug("%s produced a non-message update: %s", node_name, list(node_output.keys()))
@@ -105,7 +108,8 @@ async def solver_node(state: ASPState, solver_agent: CompiledStateGraph) -> dict
           "messages": result["messages"],
           "asp_code": result["messages"][-1].content,
           "is_validated": False,
-          "last_feedback": ""
+          "last_feedback": "",
+          "statistics": result["statistics"]
      }
 
 async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -> dict:
@@ -136,7 +140,8 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
      return {
           "is_validated": is_valid,
           "last_feedback": agent_response,
-          "validation_history": result["messages"]
+          "validation_history": result["messages"],
+          "statistics": result["statistics"]
      }
 
 def should_continue(state: ASPState) -> Literal["solver", "end"]:

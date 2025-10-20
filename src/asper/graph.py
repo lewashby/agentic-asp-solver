@@ -179,7 +179,8 @@ async def solve_asp_problem(
                     "iterations": final_state["iteration_count"],
                     "messages_history": final_state["messages"],
                     "validation_history": final_state["validation_history"],
-                    "message": final_state.get("last_feedback", "")
+                    "message": final_state.get("last_feedback", ""),
+                    "statistics": final_state["statistics"]
                 }
                 
                 if not final_state["is_validated"]:
