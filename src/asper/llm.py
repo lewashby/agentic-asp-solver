@@ -18,7 +18,6 @@ def build_llm(config: ASPSystemConfig) -> ChatOpenAI:
     except Exception as e:
         message = str(e)
         lowered = message.lower()
-        print(e)
         if any(x in lowered for x in ["unauthorized", "invalid api key", "401", "403"]):
             code = "AUTH"
         else:
