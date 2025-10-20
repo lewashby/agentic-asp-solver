@@ -73,22 +73,27 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 async def run_for_file(problem_file: Path, config: ASPSystemConfig, solver_prompt: str | None, validator_prompt: str | None) -> None:
-    setup_logger(problem_file, os.getenv("LOG_LEVEL", "INFO").upper())
+    logger = setup_logger(problem_file, os.getenv("LOG_LEVEL", "INFO").upper())
     problem = read_text_file(problem_file)
     if not problem.strip():
         print(f"Skipped empty file: {problem_file}")
         return
     result = await solve_asp_problem(problem, config, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-    export_solution(
-        problem_file,
-        {
-            "success": result.get("success", False),
-            "iterations": result.get("iterations", 0),
-            "asp_code": result.get("asp_code", ""),
-            "message": result.get("message", ""),
-            "error_code": result.get("error_code", "UNKNOWN"),
-        },
-    )
+    if result and isinstance(result, dict):
+        file = export_solution(
+            problem_file,
+            {
+                "success": result.get("success", False),
+                "iterations": result.get("iterations", 0),
+                "asp_code": result.get("asp_code", ""),
+                "message": result.get("message", ""),
+                "error_code": result.get("error_code", "UNKNOWN"),
+                "statistics": result.get("statistics", {})
+            },
+        )
+        logger.info(f"Results saved to file: {file}")
+        logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
+    logger.error(f"Error executing ASPER for file {problem_file}")
 
 
 async def main() -> None:
