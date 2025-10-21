@@ -46,3 +46,10 @@ def setup_logger(problem_path: Path, logging_level: str, export_path: Path = Pat
 
 def get_logger() -> logging.Logger:
     return logging.getLogger("log")
+
+def reset_logger():
+    logger = logging.getLogger("log")
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        handler.close()
+    logger.propagate = False

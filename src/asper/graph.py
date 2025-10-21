@@ -8,6 +8,9 @@ from langgraph.prebuilt import create_react_agent, ToolNode
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
 from asper.config import ASPSystemConfig
 from asper.errors import _root_cause_message
 from asper.llm import build_llm
@@ -166,64 +169,64 @@ async def solve_asp_problem(
             return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
 
     # Create the system
+    mcp_server = config.mcp_server_config["mcp-solver"]
+    server_params = StdioServerParameters(command=mcp_server["command"], args=mcp_server["args"])
     try:
-        mcp_client = MultiServerMCPClient(config.mcp_server_config)
-        async with mcp_client.session("mcp-solver") as session:
-            try:
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                
+                await session.initialize()
                 tools = await load_mcp_tools(session)
-            except Exception as e:
-                return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to load MCP tools: {_root_cause_message(e)}"}
 
-            try:
-                llm = build_llm(config)
-            except RuntimeError as e:
-                msg = str(e)
-                # Expect prefixed code like "AUTH: ..."
-                if ":" in msg:
-                    code, rest = msg.split(":", 1)
-                    return {"success": False, "error_code": code.strip(), "message": rest.strip()}
-                return {"success": False, "error_code": "UNKNOWN", "message": msg}
-            except Exception as e:
-                return {"success": False, "error_code": "UNKNOWN", "message": _root_cause_message(e)}
-            
-            app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-            
-            logger.info("Starting agents iterations")
-            # Initial state
-            initial_state = ASPState(
-                messages=[HumanMessage(content=f"Please read carefully and solve the following problem using Answer Set Programming (ASP)\n\n{problem_description}")],
-                problem_description=problem_description,
-                max_iterations=config.max_iterations
-            )
-            
-            try:
-                # Run the graph
-                final_state = await app.ainvoke(
-                    initial_state.model_dump(),
-                    config={"configurable": {"thread_id": "asp-solver-session"}, "recursion_limit": 50},
+                try:
+                    llm = build_llm(config)
+                except RuntimeError as e:
+                    msg = str(e)
+                    if ":" in msg:
+                        code, rest = msg.split(":", 1)
+                        return {"success": False, "error_code": code.strip(), "message": rest.strip()}
+                    return {"success": False, "error_code": "UNKNOWN", "message": msg}
+                except Exception as e:
+                    return {"success": False, "error_code": "UNKNOWN", "message": _root_cause_message(e)}
+                
+                app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
+                
+                logger.info("Starting agents iterations")
+                # Initial state
+                initial_state = ASPState(
+                    messages=[HumanMessage(content=f"Please read carefully and solve the following problem using Answer Set Programming (ASP)\n\n{problem_description}")],
+                    problem_description=problem_description,
+                    max_iterations=config.max_iterations
                 )
                 
-                # Prepare result
-                result = {
-                    "success": final_state["is_validated"],
-                    "asp_code": final_state["asp_code"],
-                    "iterations": final_state["iteration_count"],
-                    "messages_history": final_state["messages"],
-                    "validation_history": final_state["validation_history"],
-                    "message": final_state.get("last_feedback", ""),
-                    "statistics": final_state["statistics"]
-                }
-                
-                if not final_state["is_validated"]:
-                    result["message"] = f"Max iterations ({config.max_iterations}) reached. Best attempt returned."
-                
-                return result
-                
-            except Exception as e:
-                msg = str(e)
-                if ":" in msg:
-                    code, rest = msg.split(":", 1)
-                    return {"success": False, "error_code": code, "message": f"Execution failed: {rest}"}    
-                return {"success": False, "error_code": "GRAPH_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}
+                try:
+                    # Run the graph
+                    final_state = await app.ainvoke(
+                        initial_state.model_dump(),
+                        config={"configurable": {"thread_id": "asp-solver-session"}, "recursion_limit": 50},
+                    )
+                    
+                    # Prepare result
+                    result = {
+                        "success": final_state["is_validated"],
+                        "asp_code": final_state["asp_code"],
+                        "iterations": final_state["iteration_count"],
+                        "messages_history": final_state["messages"],
+                        "validation_history": final_state["validation_history"],
+                        "message": final_state.get("last_feedback", ""),
+                        "statistics": final_state["statistics"]
+                    }
+                    
+                    if not final_state["is_validated"]:
+                        result["message"] = f"Max iterations ({config.max_iterations}) reached. Best attempt returned."
+                    
+                    return result
+                    
+                except Exception as e:
+                    msg = str(e)
+                    if ":" in msg:
+                        code, rest = msg.split(":", 1)
+                        return {"success": False, "error_code": code, "message": f"Execution failed: {rest}"}    
+                    return {"success": False, "error_code": "GRAPH_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}
     except Exception as e:
         return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to initialize MCP session: {_root_cause_message(e)}"}

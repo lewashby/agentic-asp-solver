@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from asper.config import ASPSystemConfig
 from asper.graph import solve_asp_problem
-from asper.utils import export_solution, read_text_file, setup_logger
+from asper.utils import export_solution, read_text_file, reset_logger, setup_logger
 
 
 load_dotenv()
@@ -91,9 +91,12 @@ async def run_for_file(problem_file: Path, config: ASPSystemConfig) -> None:
             },
         )
         logger.info(f"Results saved to file: {file}")
-        logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
+        if result.get("statistics", None):
+            logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
     else:
         logger.error(f"Error executing ASPER for file {problem_file}")
+    
+    reset_logger()
 
 
 async def main() -> None:

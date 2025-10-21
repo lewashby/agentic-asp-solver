@@ -88,27 +88,29 @@ async def main():
         max_iterations=max_iterations,
     )
 
+    # Solve the problem (with optional prompt overrides)
     try:
-        # Solve the problem (with optional prompt overrides)
         result = await solve_asp_problem(args.problem_file, config)
 
         if result and isinstance(result, dict):
             file = export_solution(
                 args.problem_file, 
-                {"success": result["success"], 
-                "iterations": result["iterations"], 
-                "asp_code": result["asp_code"], 
-                "message": result["message"],
+                {"success": result.get("success", False), 
+                "iterations": result.get("iterations", 0), 
+                "asp_code": result.get("asp_code", ""), 
+                "message": result.get("message", ""),
                 "error_code": result.get("error_code", "UNKNOWN"),
-                "statistics": result["statistics"]
+                "statistics": result.get("statistics", {})
                 },
                 export_path=export_solution_path
             )
             logger.info(f"Results saved to file: {file}")
-            logger.info(f"Usage: Total tokens - {result["statistics"]["total_tokens"]}   Tool calls - {result["statistics"]["tool_calls"]}")
+            total_tokens = result["statistics"]["total_tokens"] if result.get("statistics", None) else 0
+            tool_calls = result["statistics"]["tool_calls"] if result.get("statistics", {}) else 0
+            logger.info(f"Usage: Total tokens - {total_tokens}   Tool calls - {tool_calls}")
         logger.info(f"Logs save to file: {export_solution_path / Path(args.problem_file).with_suffix(".log")}")
-    except Exception as e:
-        logger.error(f"{e}")
+    except:
+        logger.error(f"Error solving problem: {args.problem_file}")
 
 def cli() -> None:
     """Console script entrypoint"""
