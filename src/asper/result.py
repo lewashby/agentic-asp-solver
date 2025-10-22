@@ -1,4 +1,4 @@
-"""Result structures for ASP solver system."""
+"""Result structures for Agentic ASP solver system."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -35,7 +35,7 @@ class UsageStatistics:
 
 @dataclass
 class SolutionResult:
-    """Structured result from ASP solver execution.
+    """Structured result from Agentic ASP solver execution.
     
     This encapsulates all information about a solver run including
     success status, generated code, iterations, and diagnostics.

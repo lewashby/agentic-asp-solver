@@ -1,4 +1,4 @@
-"""LLM initialization for ASP solver."""
+"""LLM initialization for Agentic ASP solver."""
 
 from langchain_openai import ChatOpenAI
 

@@ -1,4 +1,4 @@
-"""LangGraph workflow definition for ASP solver."""
+"""LangGraph workflow definition for Agentic ASP solver."""
 
 import os
 from langgraph.checkpoint.memory import InMemorySaver

@@ -1,4 +1,4 @@
-"""Main entry point for ASP solver CLI."""
+"""Main entry point for Agentic ASP solver CLI."""
 
 import os
 import asyncio

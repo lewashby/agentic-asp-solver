@@ -62,7 +62,7 @@ class ASPRunner:
             SolutionResult with outcome and details
         """
         try:
-            self.logger.info(f"Starting ASP solver for: {problem_file}")
+            self.logger.info(f"Starting Agentic ASP solver for: {problem_file}")
             
             # Load problem
             problem = self._load_problem(problem_file)

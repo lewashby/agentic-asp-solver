@@ -1,4 +1,4 @@
-"""MCP Client management for ASP solver."""
+"""MCP Client management for Agentic ASP solver."""
 
 from contextlib import asynccontextmanager
 from typing import AsyncIterator

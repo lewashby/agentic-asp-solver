@@ -1,8 +1,8 @@
-"""Custom exceptions for ASP solver system."""
+"""Custom exceptions for Agentic ASP solver system."""
 
 
 class ASPException(Exception):
-    """Base exception for ASP system.
+    """Base exception for Agentic ASP system.
     
     All custom exceptions inherit from this class and include
     a code for programmatic error handling.
