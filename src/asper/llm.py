@@ -1,6 +1,7 @@
 """LLM initialization for Agentic ASP solver."""
 
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from asper.config import ASPSystemConfig
 
@@ -15,8 +16,8 @@ def build_llm(config: ASPSystemConfig) -> ChatOpenAI:
         Initialized ChatOpenAI instance
     """
     return ChatOpenAI(
-            model="config.model_name",
+            model=config.model_name,
             temperature=config.temperature,
             base_url=config.base_url,
-            api_key=config.api_key,
+            api_key=SecretStr(config.api_key),
         )
