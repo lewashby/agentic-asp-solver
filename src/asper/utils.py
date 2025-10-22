@@ -7,12 +7,25 @@ def read_text_file(prompt_path: Path) -> str:
         raise FileNotFoundError(f"File not found: {prompt_path}")
     return prompt_path.read_text(encoding="utf-8")
 
-def export_solution(problem_path: Path, results: dict, export_path: Path = Path("results")) -> Path:
-    export_file_path = (export_path / problem_path).with_suffix(".json")
-    Path(export_file_path.parent).mkdir(parents=True, exist_ok=True)
-    with open(export_file_path, "w") as json_file:
+def export_solution(problem_path: Path, results: dict, export_path: Path = Path("results")) -> dict[str, Path]:
+    base_path = export_path / problem_path
+    base_path.parent.mkdir(parents=True, exist_ok=True)
+
+    exported_files = {}
+
+    json_path = base_path.with_suffix(".json")
+    with open(json_path, "w", encoding='utf-8') as json_file:
         json.dump(results, json_file, indent=4)
-    return export_file_path
+    exported_files["json"] = json_path
+
+    asp_code = results.get("asp_code")
+    if asp_code:
+        lp_path = base_path.with_suffix(".lp")
+        with open(lp_path, "w", encoding='utf-8') as lp_file:
+            lp_file.write(asp_code)
+        exported_files["lp"] = lp_path
+
+    return exported_files
 
 def load_solution(solution_path: Path) -> dict:
     try:

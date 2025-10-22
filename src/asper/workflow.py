@@ -17,7 +17,7 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
      }
      try:
           logger.debug("Starting agent astream with %d history messages", len(history))
-          async for chunk in agent.astream({"messages": history}, stream_mode="updates"):
+          async for chunk in agent.astream({"messages": history}, config={"recursion_limit": 50}, stream_mode="updates"):
                if not chunk:
                     continue
                node_name = next(iter(chunk.keys()))

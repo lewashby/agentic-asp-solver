@@ -1,25 +1,19 @@
+"""LangGraph workflow definition for ASP solver."""
+
 import os
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.tools import BaseTool
-from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import RetryPolicy, RunnableConfig
 from langgraph.prebuilt import create_react_agent, ToolNode
-from langchain_mcp_adapters.tools import load_mcp_tools
-from langchain_mcp_adapters.client import MultiServerMCPClient
-
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 
 from asper.config import ASPSystemConfig
-from asper.errors import _root_cause_message
 from asper.llm import build_llm
 from asper.state import ASPState
-from asper.prompts import SOLVER_SYSTEM_PROMPT, VALIDATOR_SYSTEM_PROMPT
-from asper.utils import get_logger, read_text_file
+from asper.prompts import PromptManager
+from asper.mcp_client import MCPClientManager
 from asper.workflow import should_continue, solver_node, validator_node
 
-logger = get_logger()
 
 async def create_asp_system(
     llm,
@@ -27,35 +21,68 @@ async def create_asp_system(
     solver_prompt: str | None = None,
     validator_prompt: str | None = None,
 ):
-    """Create and compile the ASP multi-agent system graph."""
-
-    tool_error_message="An error occurred invoking the tool. Please try differently."
+    """Create and compile the ASP multi-agent system graph.
+    
+    Args:
+        llm: Language model instance
+        tools: List of MCP tools to use
+        solver_prompt: Optional custom solver prompt (uses default if None)
+        validator_prompt: Optional custom validator prompt (uses default if None)
+        
+    Returns:
+        Compiled LangGraph application
+    """    
+    tool_error_message = (
+        "An error occurred invoking the tool. Please try differently."
+    )
+    
+    # Use provided prompts or fall back to defaults
+    final_solver_prompt = solver_prompt or PromptManager.SOLVER.default_content
+    final_validator_prompt = validator_prompt or PromptManager.VALIDATOR.default_content
     
     # Create ReAct agents
     solver_agent = create_react_agent(
         llm,
         tools=ToolNode(tools=tools, handle_tool_errors=tool_error_message),
-        prompt=solver_prompt or SOLVER_SYSTEM_PROMPT
+        prompt=final_solver_prompt
     )
+    
+    # Validator only needs solve_model and add_item tools
+    validator_tools = [
+        tool for tool in tools 
+        if tool.name in ["solve_model", "add_item"]
+    ]
     
     validator_agent = create_react_agent(
         llm,
-        tools=ToolNode(tools=[tool for tool in tools if tool.name in ["solve_model", "add_item"]], handle_tool_errors=tool_error_message),
-        prompt=validator_prompt or VALIDATOR_SYSTEM_PROMPT
+        tools=ToolNode(
+            tools=validator_tools, 
+            handle_tool_errors=tool_error_message
+        ),
+        prompt=final_validator_prompt
     )
-
+    
+    # Create wrapper functions for nodes
     async def solver_node_wrapper(state):
         return await solver_node(state, solver_agent)
-
+    
     async def validator_node_wrapper(state):
         return await validator_node(state, validator_agent)
     
     # Create parent state graph
     workflow = StateGraph(ASPState)
     
-    # Add nodes (async wrappers ensure coroutines are awaited)
-    workflow.add_node("solver", solver_node_wrapper, retry_policy=RetryPolicy())
-    workflow.add_node("validator", validator_node_wrapper, retry_policy=RetryPolicy())
+    # Add nodes with retry policy
+    workflow.add_node(
+        "solver", 
+        solver_node_wrapper, 
+        retry_policy=RetryPolicy()
+    )
+    workflow.add_node(
+        "validator", 
+        validator_node_wrapper, 
+        retry_policy=RetryPolicy()
+    )
     
     # Add edges
     workflow.add_edge(START, "solver")
@@ -73,160 +100,44 @@ async def create_asp_system(
     memory = InMemorySaver()
     app = workflow.compile(checkpointer=memory)
     
-    logger.info("Agents graph created")
     return app
 
 
 async def _create_agents_graph(config: RunnableConfig):
-    """
-    Graph factory for LangGraph Studio/Dev. Must accept exactly one RunnableConfig.
-
-    It builds an internal ASPSystemConfig from environment or configurable overrides
-    and returns the compiled graph (Runnable).
-    """
-    configurable = (config or {}).get("configurable", {}) if isinstance(config, dict) else getattr(config, "configurable", {})
-
-    # Resolve configuration from env with optional overrides from RunnableConfig.configurable
-    model_name = configurable.get("model_name") or os.getenv("MODEL_NAME") or ASPSystemConfig().model_name
-    base_url = os.getenv("OPENAI_BASE_URL", ASPSystemConfig().base_url)
-    api_key = os.getenv("OPENAI_API_KEY", ASPSystemConfig().api_key)
-    max_iterations = int(configurable.get("max_iterations") or os.getenv("MAX_ITERATIONS", str(ASPSystemConfig().max_iterations)))
-
-    mcp_args_env = os.getenv("MCP_SOLVER_ARGS", "")
-    mcp_args = [arg for arg in mcp_args_env.split(',') if arg] if mcp_args_env else []
-    mcp_server_config = {
-        "mcp-solver": {
-            "command": os.getenv("MCP_SOLVER_COMMAND"),
-            "args": mcp_args,
-            "transport": os.getenv("MCP_SOLVER_TRANSPORT"),
-        }
-    }
-
-    system_config = ASPSystemConfig(
-        model_name=model_name,
-        base_url=base_url,
-        api_key=api_key,
-        mcp_server_config=mcp_server_config,
-        max_iterations=max_iterations,
-    )
-
-    # Load MCP tools and build the app
-    mcp_client = MultiServerMCPClient(system_config.mcp_server_config)
-    async with mcp_client.session("mcp-solver") as session:
-        tools = await load_mcp_tools(session)
-        llm = build_llm(system_config)
-        app = await create_asp_system(llm, tools)
-        return app
-
-
-async def solve_asp_problem(
-    problem_file: str,
-    config: ASPSystemConfig
-) -> dict:
-    """
-    Main function to solve an ASP problem using the multi-agent system
+    """Graph factory for LangGraph Studio/Dev.
+    
+    This function is called by LangGraph Studio and must accept
+    exactly one RunnableConfig parameter.
     
     Args:
-        problem_file: File with natural language description of the problem
-        config: System configuration
+        config: Runtime configuration from LangGraph
         
     Returns:
-        dict with final ASP code, validation status, and history
+        Compiled graph ready for execution
     """
-    logger.info(f"Starting agents system -| model: {config.model_name}  max_iterations: {config.max_iterations}")
-
-    # Load file problem
-    try:
-        problem_description = read_text_file(problem_file)
-        if not problem_description.strip():
-            logger.error(f"Empty file: {problem_file}")
-            raise SystemExit(2)
-        logger.info(f"Problem file loaded: {problem_file}")
-    except Exception as e:
-        return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
-
-    # Load system prompts
-    solver_prompt = None
-    if config.solver_prompt_file:
-        try:
-            solver_prompt = read_text_file(config.solver_prompt_file)
-            if not solver_prompt.strip():
-                logger.error(f"Empty file: {config.solver_prompt_file}")
-                raise SystemExit(2)
-            logger.info(f"Loaded Solver Agent system prompt file: {config.solver_prompt_file}")
-        except Exception as e:
-            return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
+    # Extract configurable values
+    configurable = {}
+    if isinstance(config, dict):
+        configurable = config.get("configurable", {})
+    elif hasattr(config, "configurable"):
+        configurable = config.configurable or {}
+    
+    # Build system configuration from environment with overrides
+    system_config = ASPSystemConfig.from_env(
+        model_name=configurable.get("model_name"),
+        max_iterations=configurable.get("max_iterations")
+    )
+    
+    # Load MCP tools using the client manager
+    mcp_manager = MCPClientManager(system_config)
+    
+    async with mcp_manager.get_session("mcp-solver") as session:
+        from langchain_mcp_adapters.tools import load_mcp_tools
+        tools = await load_mcp_tools(session)
         
-    validator_prompt = None
-    if config.validator_prompt_file:
-        try:
-            validator_prompt = read_text_file(config.validator_prompt_file)
-            if not validator_prompt.strip():
-                logger.error(f"Empty file: {config.validator_prompt_file}")
-                raise SystemExit(2)
-            logger.info(f"Loaded Validator Agent system prompt file: {config.validator_prompt_file}")
-        except Exception as e:
-            return {"success": False, "error_code": "FILE_ERROR", "message": f"{e}"}
-
-    # Create the system
-    mcp_server = config.mcp_server_config["mcp-solver"]
-    server_params = StdioServerParameters(command=mcp_server["command"], args=mcp_server["args"])
-    try:
-        async with stdio_client(server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                
-                await session.initialize()
-                tools = await load_mcp_tools(session)
-
-                try:
-                    llm = build_llm(config)
-                except RuntimeError as e:
-                    msg = str(e)
-                    if ":" in msg:
-                        code, rest = msg.split(":", 1)
-                        return {"success": False, "error_code": code.strip(), "message": rest.strip()}
-                    return {"success": False, "error_code": "UNKNOWN", "message": msg}
-                except Exception as e:
-                    return {"success": False, "error_code": "UNKNOWN", "message": _root_cause_message(e)}
-                
-                app = await create_asp_system(llm, tools, solver_prompt=solver_prompt, validator_prompt=validator_prompt)
-                
-                logger.info("Starting agents iterations")
-                # Initial state
-                initial_state = ASPState(
-                    messages=[HumanMessage(content=f"Please read carefully and solve the following problem using Answer Set Programming (ASP)\n\n{problem_description}")],
-                    problem_description=problem_description,
-                    max_iterations=config.max_iterations
-                )
-                
-                try:
-                    # Run the graph
-                    final_state = await app.ainvoke(
-                        initial_state.model_dump(),
-                        config={"configurable": {"thread_id": "asp-solver-session"}, "recursion_limit": 50},
-                    )
-                    
-                    # Prepare result
-                    result = {
-                        "success": final_state["is_validated"],
-                        "asp_code": final_state["asp_code"],
-                        "iterations": final_state["iteration_count"],
-                        "messages_history": final_state["messages"],
-                        "validation_history": final_state["validation_history"],
-                        "message": final_state.get("last_feedback", ""),
-                        "statistics": final_state["statistics"]
-                    }
-                    
-                    if not final_state["is_validated"]:
-                        result["message"] = f"Max iterations ({config.max_iterations}) reached. Best attempt returned."
-                    
-                    return result
-                    
-                except Exception as e:
-                    msg = str(e)
-                    if ":" in msg:
-                        code, rest = msg.split(":", 1)
-                        return {"success": False, "error_code": code, "message": f"Execution failed: {rest}"}    
-                    return {"success": False, "error_code": "GRAPH_ERROR", "message": f"Execution failed: {_root_cause_message(e)}"}
-    except Exception as e:
-        return {"success": False, "error_code": "MCP_ERROR", "message": f"Failed to initialize MCP session: {_root_cause_message(e)}"}
+        # Build LLM
+        llm = build_llm(system_config)
+        
+        # Create and return the graph
+        app = await create_asp_system(llm, tools)
+        return app
