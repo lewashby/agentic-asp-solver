@@ -108,7 +108,6 @@ class ASPRunner:
         
         except Exception as e:
             self.logger.exception("Unexpected error during solving")
-            from asper.exceptions import MCPError
             error_msg = str(e)
             if "Connection closed" in error_msg or "McpError" in error_msg:
                 return SolutionResult.error(
