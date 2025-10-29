@@ -1,6 +1,11 @@
-from pathlib import Path
-from typing import Optional
+"""System prompts and prompt management for ASP agents.
+
+Defines default prompts for solver, validator, and tester agents,
+plus a PromptManager for loading custom prompt overrides from files.
+"""
+
 from dataclasses import dataclass
+from pathlib import Path
 
 from asper.exceptions import FileError
 
@@ -96,76 +101,77 @@ FINAL OUTPUT (STRICT):
 - If unsatisfiable: return exactly UNSAT.
 """
 
+
 @dataclass
 class PromptTemplate:
     """Container for a prompt template."""
-    
+
     name: str
     default_content: str
-    
-    def load(self, custom_path: Optional[Path] = None) -> str:
+
+    def load(self, custom_path: Path | None = None) -> str:
         """Load prompt from custom file or return default.
-        
+
         Args:
             custom_path: Optional path to custom prompt file
-            
+
         Returns:
             Prompt content as string
-            
+
         Raises:
             FileError: If custom path provided but file doesn't exist or is empty
         """
         if custom_path is None:
             return self.default_content
-        
+
         if not custom_path.exists():
             raise FileError(f"Prompt file not found: {custom_path}")
-        
+
         content = custom_path.read_text(encoding="utf-8")
         if not content.strip():
             raise FileError(f"Empty prompt file: {custom_path}")
-        
+
         return content
 
 
 class PromptManager:
     """Manages all system prompts with default templates and custom overrides."""
-    
+
     SOLVER = PromptTemplate("solver", SOLVER_SYSTEM_PROMPT)
     VALIDATOR = PromptTemplate("validator", VALIDATOR_SYSTEM_PROMPT)
     TESTER = PromptTemplate("tester", TESTER_SYSTEM_PROMPT)
-    
+
     @classmethod
-    def get_solver_prompt(cls, custom_path: Optional[Path] = None) -> str:
+    def get_solver_prompt(cls, custom_path: Path | None = None) -> str:
         """Get solver agent prompt.
-        
+
         Args:
             custom_path: Optional path to custom prompt file
-            
+
         Returns:
             Solver prompt content
         """
         return cls.SOLVER.load(custom_path)
-    
+
     @classmethod
-    def get_validator_prompt(cls, custom_path: Optional[Path] = None) -> str:
+    def get_validator_prompt(cls, custom_path: Path | None = None) -> str:
         """Get validator agent prompt.
-        
+
         Args:
             custom_path: Optional path to custom prompt file
-            
+
         Returns:
             Validator prompt content
         """
         return cls.VALIDATOR.load(custom_path)
-    
+
     @classmethod
-    def get_tester_prompt(cls, custom_path: Optional[Path] = None) -> str:
+    def get_tester_prompt(cls, custom_path: Path | None = None) -> str:
         """Get tester agent prompt.
-        
+
         Args:
             custom_path: Optional path to custom prompt file
-            
+
         Returns:
             Tester prompt content
         """
