@@ -51,6 +51,16 @@ class MCPError(ASPException):
         """
         super().__init__("MCP_ERROR", message)
 
+class ConnectionError(ASPException):
+    """Exception for connection-related errors."""
+
+    def __init__(self, message: str):
+        """Initialize a ConnectionError exception with a descriptive message.
+
+        Args:
+            message: A human-readable description of the connection error.
+        """
+        super().__init__("CONNECTION_ERROR", message)
 
 class ModelNotFoundError(ASPException):
     """Exception when LLM model is not found."""
@@ -123,29 +133,39 @@ def classify_exception(error: Exception) -> ASPException:
     """
     if isinstance(error, ASPException):
         return error
+    
+    # Get the root cause for better classification
+    root_message = _root_cause_message(error).lower()
 
-    message = str(error).lower()
+    full_context = f"{str(error)} {root_message}".lower()
+
+    # Check for connection errors
+    if any(
+        keyword in full_context
+        for keyword in ["connection reset", "connection refused", "network error", "connection error"]
+    ):
+        return ConnectionError(str(error))
 
     # Check for authentication errors
     if any(
-        keyword in message
+        keyword in full_context
         for keyword in ["unauthorized", "invalid api key", "401", "403"]
     ):
         return AuthError(str(error))
 
     # Check for model not found errors
-    if ("404" in message or "not found" in message) and "model" in message:
+    if ("404" in full_context or "not found" in full_context) and "model" in full_context:
         return ModelNotFoundError(str(error))
 
     # Check for file errors
     if any(
-        keyword in message
+        keyword in full_context
         for keyword in ["file not found", "no such file", "cannot open"]
     ):
         return FileError(str(error))
 
     # Check for MCP errors
-    if "mcp" in message or "server" in message:
+    if "mcp" in full_context or "server" in full_context:
         return MCPError(str(error))
 
     # Default to generic ASPException
@@ -164,7 +184,7 @@ def _root_cause_message(error: BaseException) -> str:
     try:
         # ExceptionGroup handling
         exceptions_attr = getattr(error, "exceptions", None)
-        if isinstance(exceptions_attr, list) and exceptions_attr:
+        if exceptions_attr and isinstance(exceptions_attr, (list, tuple)) and exceptions_attr:
             first = exceptions_attr[0]
             if isinstance(first, BaseException):
                 return _root_cause_message(first)

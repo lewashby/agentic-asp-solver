@@ -8,7 +8,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from asper.config import ASPSystemConfig, MCPServerConfig
-from asper.exceptions import MCPError
+from asper.exceptions import MCPError, classify_exception
 
 
 class MCPClientManager:
@@ -120,17 +120,7 @@ class MCPClientManager:
         except MCPError:
             raise
         except Exception as e:
-            error_msg = str(e)
-            if "Connection closed" in error_msg:
-                raise MCPError(
-                    "MCP server connection closed unexpectedly.\n"
-                    "This usually means:\n"
-                    "1. The mcp-solver is not installed correctly\n"
-                    "2. Dependencies are missing (run: cd <mcp-solver-path> && uv sync && uv pip install -e '.[asp]')\n"
-                    "3. Python version mismatch\n"
-                    f"Original error: {error_msg}"
-                )
-            raise MCPError(f"Failed to initialize MCP session: {e}")
+            raise classify_exception(e)
 
     def _create_server_params(
         self, server_config: MCPServerConfig

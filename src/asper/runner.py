@@ -99,19 +99,9 @@ class ASPRunner:
             return result
 
         except ASPException as e:
-            self.logger.error(f"ASP error: {e.code} - {e.message}")
+            self.logger.error(f"System error: {e.code} - {e.message}")
             return SolutionResult.from_exception(e)
 
-        except Exception as e:
-            self.logger.exception("Unexpected error during solving")
-            error_msg = str(e)
-            if "Connection closed" in error_msg or "McpError" in error_msg:
-                return SolutionResult.error(
-                    "MCP_ERROR",
-                    f"MCP connection failed. Please check: 1) MCP server is installed correctly, "
-                    f"2) MCP_SOLVER_ARGS path is correct, 3) Server command is valid. Error: {error_msg}",
-                )
-            return SolutionResult.from_exception(e)
 
     def _load_problem(self, path: Path) -> str:
         """Load problem description from file.
@@ -234,13 +224,16 @@ class ASPRunner:
             return final_state
 
         except Exception as e:
-            self.logger.exception("Graph execution failed")
 
             # Try to classify the error
             classified = classify_exception(e)
 
             if isinstance(classified, ASPException):
+                self.logger.error(f"Graph execution failed [{classified.code}]: {classified.message}")
                 raise classified
+            
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug("Full traceback:", exc_info=True)
 
             raise GraphExecutionError(f"Execution failed: {e}")
 
