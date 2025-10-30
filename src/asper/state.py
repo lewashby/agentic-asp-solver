@@ -62,3 +62,6 @@ class ASPState(BaseModel):
         "total_tokens": 0,
         "tool_calls": 0,
     }
+
+    # Error code if any error occurred
+    error_code: str = ""

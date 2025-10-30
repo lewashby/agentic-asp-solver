@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage
+from langgraph.graph.state import CompiledStateGraph
 
 from asper.config import ASPSystemConfig
 from asper.exceptions import ASPException, FileError, classify_exception
@@ -200,7 +201,7 @@ class ASPRunner:
             max_iterations=self.config.max_iterations,
         )
 
-    async def _run_graph(self, app, state: ASPState) -> dict:
+    async def _run_graph(self, app: CompiledStateGraph, state: ASPState) -> dict:
         """Execute the agent graph.
 
         Args:
@@ -221,7 +222,7 @@ class ASPRunner:
             final_state = await app.ainvoke(
                 state.model_dump(),
                 config={
-                    "configurable": {"thread_id": "asp-solver-session"},
+                    "configurable": {"thread_id": "1"},
                     "recursion_limit": 50,
                 },
             )

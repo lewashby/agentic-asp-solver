@@ -7,6 +7,7 @@ creation and agent invocation with token/tool usage tracking.
 
 from typing import Literal
 
+from anyio.streams.memory import ClosedResourceError
 from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph
 
@@ -188,16 +189,28 @@ async def solver_node(state: ASPState, solver_agent: CompiledStateGraph) -> dict
     messages = create_solver_message(state, is_first)
 
     # Invoke the solver ReAct agent
-    result = await call_agent(messages, solver_agent)
+    try:
+        result = await call_agent(messages, solver_agent)
 
-    return {
-        "iteration_count": state.iteration_count + 1,
-        "messages": result["messages"],
-        "asp_code": result["messages"][-1].content,
-        "is_validated": False,
-        "last_feedback": "",
-        "statistics": result["statistics"],
-    }
+        return {
+            "iteration_count": state.iteration_count + 1,
+            "messages": result["messages"],
+            "asp_code": result["messages"][-1].content,
+            "is_validated": False,
+            "last_feedback": "",
+            "statistics": result["statistics"],
+        }
+    except ClosedResourceError as e:
+        logger.error("Solver node failed due to closed MCP connection: %s", str(e))
+        return {
+            "error_code": "MCP_CONNECTION_CLOSED",
+        }
+    except RuntimeError as e:
+        # Model not found error from call_agent
+        logger.error("Solver agent failed: %s", str(e))
+        return {
+            "error_code": "RUNTIME_ERROR",
+        }
 
 
 async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -> dict:
@@ -217,6 +230,13 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
     message = create_validator_message(state)
     logger.info("Validator evaluating iteration %d", state.iteration_count)
 
+    if state.error_code:
+        logger.info("Validator skipped due to existing error: %s", state.error_code)
+        return {
+            "is_validated": False,
+            "messages": state.messages,
+            "last_feedback": "Validation skipped due to existing error in workflow.",
+        }
     if (
         state.asp_code == ""
         or state.asp_code == "Sorry, need more steps to process this request."
@@ -229,21 +249,32 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
         }
 
     # Invoke the validator ReAct agent
-    result = await call_agent(message, validator_agent)
+    try:
+        result = await call_agent(message, validator_agent)
 
-    # Extract validation result from the agent's response
-    agent_response = result["messages"][-1].content
+        # Extract validation result from the agent's response
+        agent_response = result["messages"][-1].content
 
-    # Determine if validation passed
-    is_valid = "VALIDATION PASSED" in agent_response.upper()
-    logger.info("Validation result: %s", "PASSED" if is_valid else "FAILED")
+        # Determine if validation passed
+        is_valid = "VALIDATION PASSED" in agent_response.upper()
+        logger.info("Validation result: %s", "PASSED" if is_valid else "FAILED")
 
-    return {
-        "is_validated": is_valid,
-        "last_feedback": agent_response,
-        "validation_history": result["messages"],
-        "statistics": result["statistics"],
-    }
+        return {
+            "is_validated": is_valid,
+            "last_feedback": agent_response,
+            "validation_history": result["messages"],
+            "statistics": result["statistics"],
+        }
+    except ClosedResourceError as e:
+        logger.error("Validator node failed due to closed MCP connection: %s", str(e))
+        return {
+            "error_code": "MCP_CONNECTION_CLOSED",
+        }
+    except RuntimeError as e:
+        logger.error("Validator agent failed: %s", str(e))
+        return {
+            "error_code": "RUNTIME_ERROR",
+        }
 
 
 def should_continue(state: ASPState) -> Literal["solver", "end"]:
@@ -260,6 +291,10 @@ def should_continue(state: ASPState) -> Literal["solver", "end"]:
     Returns:
         'solver' to continue iteration or 'end' to finish
     """
+    if state.error_code:
+        logger.info("Stopping due to error: %s", state.error_code)
+        return "end"
+
     # If validated, we're done
     if state.is_validated:
         logger.info(

@@ -12,12 +12,14 @@ requires-python = ">=3.12"
 keywords = ["ai", "coding", "agent", "llm", "code-generation", "automation", "asp", "answer-set-programming"]
 
 dependencies = [
+    "langchain>=1.0.2",
+    "langchain-core>=1.0.1",
     "langchain-mcp-adapters>=0.1.10",
-    "langchain-openai>=0.3.33",
-    "langgraph>=0.6.7",
-    "langgraph-cli[inmem]>=0.4.2",
-    "mcp>=1.17.0",
-    "python-dotenv>=1.1.1",
+    "langchain-openai>=1.0.1",
+    "langgraph>=1.0.1",
+    "langgraph-cli[inmem]>=0.4.4",
+    "mcp>=1.19.0",
+    "python-dotenv>=1.2.1",
 ]
 
 [project.scripts]
@@ -59,6 +61,7 @@ lint.ignore = [
     # Relax the convention by _not_ requiring documentation for every function parameter.
     "D417",
     "E501",
+    "T201"
 ]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D", "UP"]

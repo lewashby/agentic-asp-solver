@@ -3,8 +3,12 @@
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.prebuilt import ToolNode, create_react_agent
-from langgraph.types import RetryPolicy, RunnableConfig
+from langgraph.graph.state import CompiledStateGraph
+from langchain.agents import create_agent
+from langgraph.types import RetryPolicy
+from langchain_core.runnables.config import RunnableConfig
+from langchain.agents.middleware import AgentMiddleware
+from langchain_core.messages import ToolMessage
 
 from asper.config import ASPSystemConfig
 from asper.llm import build_llm
@@ -13,13 +17,26 @@ from asper.prompts import PromptManager
 from asper.state import ASPState
 from asper.workflow import should_continue, solver_node, validator_node
 
+class AsyncMiddleware(AgentMiddleware):
+    """Async middleware wrapper for tool calls."""
+    async def awrap_tool_call(self, request, handler):
+        """Handle tool execution errors with custom messages."""
+        try:
+            return await handler(request)
+        except Exception as e:
+            # Return a custom error message to the model
+            return ToolMessage(
+                content=f"An error occurred invoking the tool. Please try differently. ({str(e)})",
+                tool_call_id=request.tool_call["id"]
+            )
+
 
 async def create_asp_system(
     llm,
     tools: list[BaseTool],
     solver_prompt: str | None = None,
     validator_prompt: str | None = None,
-):
+) -> CompiledStateGraph:
     """Create and compile the ASP multi-agent system graph.
 
     Args:
@@ -31,17 +48,17 @@ async def create_asp_system(
     Returns:
         Compiled LangGraph application
     """
-    tool_error_message = "An error occurred invoking the tool. Please try differently."
 
     # Use provided prompts or fall back to defaults
     final_solver_prompt = solver_prompt or PromptManager.SOLVER.default_content
     final_validator_prompt = validator_prompt or PromptManager.VALIDATOR.default_content
 
     # Create ReAct agents
-    solver_agent = create_react_agent(
+    solver_agent = create_agent(
         llm,
-        tools=ToolNode(tools=tools, handle_tool_errors=tool_error_message),
-        prompt=final_solver_prompt,
+        tools=tools,
+        middleware=[AsyncMiddleware()],
+        system_prompt=final_solver_prompt,
     )
 
     # Validator only needs solve_model and add_item tools
@@ -49,10 +66,11 @@ async def create_asp_system(
         tool for tool in tools if tool.name in ["solve_model", "add_item"]
     ]
 
-    validator_agent = create_react_agent(
+    validator_agent = create_agent(
         llm,
-        tools=ToolNode(tools=validator_tools, handle_tool_errors=tool_error_message),
-        prompt=final_validator_prompt,
+        tools=validator_tools,
+        middleware=[AsyncMiddleware()],
+        system_prompt=final_validator_prompt,
     )
 
     # Create wrapper functions for nodes
