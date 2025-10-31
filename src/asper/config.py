@@ -43,10 +43,12 @@ class ASPSystemConfig(BaseModel):
     """Configuration for the ASP multi-agent system.
 
     Attributes:
+        chat_model_type: Chat model type ('openai' or 'ollama', default: 'ollama')
         model_name: LLM model identifier (default: 'gpt-oss:20b')
         temperature: Sampling temperature (default: 0.0)
         base_url: OpenAI-compatible API endpoint (default: Ollama)
         api_key: API key (default: 'ollama' for local models)
+        reasoning: Reasoning level for reasoning models ('low', 'medium', 'high', or bool)
         solver_prompt_file: Optional custom solver prompt file path
         validator_prompt_file: Optional custom validator prompt file path
         mcp_servers: Dictionary of MCP server configurations by name
@@ -54,10 +56,12 @@ class ASPSystemConfig(BaseModel):
     """
 
     # LLM configuration
+    chat_model_type: str = "ollama"  # 'openai' or 'ollama'
     model_name: str = "gpt-oss:20b"
     temperature: float = 0.0
     base_url: str = "http://localhost:11434/v1"  # Ollama default
     api_key: str = "ollama"  # Ollama doesn't need real key
+    reasoning: str | bool = False # 'low', 'medium', 'high', True, or False
 
     # Prompts
     solver_prompt_file: Path | None = None
@@ -68,6 +72,52 @@ class ASPSystemConfig(BaseModel):
 
     # System behavior
     max_iterations: int = 5
+
+    @field_validator("chat_model_type")
+    @classmethod
+    def validate_chat_model_type(cls, v):
+        """Validate chat_model_type is either 'openai' or 'ollama'.
+
+        Args:
+            v: Chat model type string
+
+        Returns:
+            Validated chat model type
+
+        Raises:
+            ValueError: If chat_model_type is not 'openai' or 'ollama'
+        """
+        if v.lower() not in ["openai", "ollama"]:
+            raise ValueError("chat_model_type must be 'openai' or 'ollama'")
+        return v.lower()
+
+    @field_validator("reasoning")
+    @classmethod
+    def validate_reasoning(cls, v):
+        """Validate reasoning is a boolean or 'low', 'medium', 'high'.
+
+        Args:
+            v: Reasoning level
+
+        Returns:
+            Validated reasoning value
+
+        Raises:
+            ValueError: If reasoning is invalid
+        """
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            lower_v = v.lower()
+            if lower_v == "true":
+                return True
+            if lower_v == "false":
+                return False
+            if v.lower() in ["low", "medium", "high"]:
+                return v.lower()
+            raise ValueError(
+                "reasoning must be a boolean, 'low', 'medium', 'high', 'true', or 'false'"
+            )
 
     @classmethod
     def from_env(cls, **overrides) -> "ASPSystemConfig":
@@ -111,10 +161,12 @@ class ASPSystemConfig(BaseModel):
 
         # Build base configuration from environment
         config_dict = {
+            "chat_model_type": os.getenv("CHAT_MODEL_TYPE", "ollama"),
             "model_name": os.getenv("MODEL_NAME", "gpt-oss:20b"),
             "temperature": float(os.getenv("TEMPERATURE", "0.0")),
             "base_url": os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
             "api_key": os.getenv("OPENAI_API_KEY", "ollama"),
+            "reasoning": os.getenv("REASONING_LEVEL", False),
             "max_iterations": int(os.getenv("MAX_ITERATIONS", "5")),
             "mcp_servers": {
                 "mcp-solver": MCPServerConfig(

@@ -41,6 +41,8 @@ async def main() -> None:
                 max_iterations=args.max_iterations,
                 solver_prompt_file=args.solver_prompt,
                 validator_prompt_file=args.validator_prompt,
+                chat_model_type=args.chat_model_type,
+                reasoning=args.reasoning,
             )
         except ValueError as e:
             logger.error(f"Configuration error: {e}")
@@ -96,7 +98,7 @@ async def main() -> None:
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:
-        logger.exception(f"Fatal error: {e}")
+        logger.error(f"Fatal error: {e}")
         raise SystemExit(1)
 
 

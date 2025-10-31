@@ -141,6 +141,7 @@ class ASPRunner:
 
         # Build LLM
         llm = build_llm(self.config)
+        self.logger.info("Language model initialized successfully")
 
         # Load prompts
         solver_prompt = PromptManager.get_solver_prompt(self.config.solver_prompt_file)

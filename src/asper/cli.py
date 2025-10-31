@@ -51,10 +51,25 @@ Examples:
     )
 
     parser.add_argument(
+        "--chat-model-type",
+        type=str,
+        choices=["openai", "ollama"],
+        default=None,
+        help="Chat model type: 'openai' or 'ollama' (default: from env or 'ollama')",
+    )
+
+    parser.add_argument(
         "--max-iterations",
         type=int,
         default=None,
         help="Maximum number of solver/validator iterations (default: 5)",
+    )
+
+    parser.add_argument(
+        "--reasoning",
+        type=str,
+        default=None,
+        help="Reasoning level for reasoning models: 'low', 'medium', 'high', 'true', or 'false' (default: from env or 'low')",
     )
 
     parser.add_argument(
