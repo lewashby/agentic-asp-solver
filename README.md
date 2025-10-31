@@ -1,6 +1,6 @@
 # Agentic ASP Solver
 
-A lightweight ASP (Answer Set Programming) coding agent that generates, runs, and refines logic programs through natural language instructions using LangGraph.
+LangGraph-driven multi-agent system that turns natural-language problem statements into Answer Set Programming (ASP) code, validates it with MCP tools, and iterates until correct.
 
 ## Overview
 
@@ -10,13 +10,19 @@ This project implements a multi-agent system that can:
 - Iteratively refine solutions based on feedback
 - Use MCP (Model Context Protocol) tools for enhanced capabilities
 
+## Architecture at a glance
+
+- Orchestrator: `ASPRunner` loads a problem, builds initial `ASPState`, opens an MCP session via `MCPClientManager`, compiles the graph, runs it, and exports results.
+- Agents and control flow: `create_asp_system` builds two ReAct agents (solver with full MCP access; validator restricted to `solve_model` and `add_item`). `workflow.should_continue` loops solver→validator until validated or `max_iterations`.
+- State: `ASPState` keys: `problem_description`, `asp_code`, `messages`, `validation_history`, `iteration_count`, `max_iterations`, `is_validated`, `answer_set`, `statistics`.
+- LLM/MCP: `build_llm` config via env (Ollama-compatible OpenAI API by default). MCP tools loaded at runtime from a long-lived stdio session.
+
 ## Features
 
 - **Multi-agent architecture**: Separate solver and validator agents
 - **Natural language interface**: Describe problems in plain English
 - **Iterative refinement**: Automatically improves solutions based on validation feedback
 - **MCP integration**: Leverages external tools for enhanced problem-solving
-- **LangGraph Studio support**: Visual debugging and development
 
 ## Quick Start
 
@@ -45,17 +51,28 @@ uv pip install -e ".[asp]"  # Install asp solver
 
 ```bash
 cp .env.example .env
-# Add your OpenAI API key and MCP Solver configuration
-# IMPORTANT!!!
-# Update the .env variable MCP_SOLVER_ARGS with the MCP Solver absolute path
-# MCP_SOLVER_ARGS=--directory,MCP_SOLVER_PATH,run,mcp-solver-asp
+# Required for MCP (adjust absolute path after --directory):
+MCP_SOLVER_COMMAND=uv
+MCP_SOLVER_ARGS=--directory,absolute_path,run,mcp-solver-asp
+
+# Ollama-friendly model defaults (override if needed):
+MODEL_NAME=gpt-oss:20b
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama
 ```
 
 **Run**:
 
 ```bash
 asper -h
+# Single run example:
+asper .\examples\graph_coloring.md
 ```
+
+### Outputs
+
+- Results exported to `results/...` (`.json` and generated `.lp`).
+- Logs written to `results/....log`.
 
 ### LLM backend (Ollama)
 
@@ -76,7 +93,8 @@ ollama pull gpt-oss:20b
 
 ```bash
 MODEL_NAME=gpt-oss:20b
-# OPENAI_BASE_URL and OPENAI_API_KEY can be left at defaults for Ollama
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_API_KEY=ollama
 ```
 
 ## Examples
@@ -162,9 +180,20 @@ Note: Ensure your environment variables (e.g., `MODEL_NAME`, `OPENAI_BASE_URL`, 
 - `src/asper/` - Core agent implementation
 - `examples/` - Sample problems and use cases
 - `prompts/` - System prompts for different agent roles
-- `tests/` - Unit and integration tests
+- `tests/` - Tests
 
 ## Development
 
-The system uses LangGraph for orchestration and supports hot reload during development. Check out the [LangGraph documentation](https://langchain-ai.github.io/langgraph/) for more advanced features.
+The system uses LangGraph for orchestration and supports hot reload during development. Check out the LangGraph docs for more.
+
+```bash
+# Tests
+pytest
+```
+
+## Troubleshooting
+
+- Model 404s: the `MODEL_NAME` is not available on `OPENAI_BASE_URL` (pull or change the model).
+- MCP "Connection closed": re-check `MCP_SOLVER_ARGS` absolute path after `--directory` and verify mcp-solver install.
+- Validator skips if `asp_code` is empty: ensure the solver produced code before expecting a PASS.
 
