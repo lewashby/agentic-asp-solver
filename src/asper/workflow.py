@@ -7,7 +7,7 @@ creation and agent invocation with token/tool usage tracking.
 
 from typing import Literal
 
-from anyio.streams.memory import ClosedResourceError
+from anyio import ClosedResourceError
 from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph
 

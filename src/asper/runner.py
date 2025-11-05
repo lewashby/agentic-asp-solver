@@ -179,11 +179,12 @@ class ASPRunner:
             Initial ASPState
         """
         initial_message = HumanMessage(
-            content=(
-                "Please read carefully and solve the following problem "
-                "using Answer Set Programming (ASP)\n\n"
-                f"{problem}"
-            )
+            # content=(
+            #     "Please read carefully and solve the following problem "
+            #     "using Answer Set Programming (ASP)\n\n"
+            #     f"{problem}"
+            # )
+            content="Please read carefully and follow the user instructions.\n\n"
         )
 
         return ASPState(
