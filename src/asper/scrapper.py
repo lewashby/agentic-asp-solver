@@ -54,7 +54,8 @@ def filter_readme_content(content):
 
     # Common section titles to exclude (case-insensitive)
     exclude_start_patterns = [
-        r"##\s*self-check",
+        r"(?i)SHA-1\s+of\s+the\s+expected\s+output",
+        r"(?i)##\s*self-check",
         r"checker\s+output",
         r"instances\s+as\s+the\s+one\s+above\s+can\s+be\s+visualized",
     ]
