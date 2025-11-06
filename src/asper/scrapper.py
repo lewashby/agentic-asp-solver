@@ -22,7 +22,6 @@ def get_additional_input_text(year: int, problem_number: int) -> str | None:
     Return the extra text to inject into the '## Input format' section.
     Customize this mapping per year/problem. Return None or '' to skip.
     """
-    # Example skeleton – fill in as needed:
     extras = {
         2020: {
             1: "Input facts format:\nsize(S).\ncol(C,clue).\nrow(R,clue).\ngroup(R,C,value).",
@@ -68,7 +67,6 @@ def get_additional_output_text(year: int, problem_number: int) -> str | None:
     Return the extra text to inject into the '## Output format' section.
     Customize this mapping per year/problem. Return None or '' to skip.
     """
-    # Example skeleton – fill in as needed:
     extras = {
         2020: {
             1: "Output facts format:\nwater(R,C).",
