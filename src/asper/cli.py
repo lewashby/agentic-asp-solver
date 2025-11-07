@@ -199,7 +199,7 @@ def validate_cli_args(args: argparse.Namespace) -> str | None:
         return f"Solver prompt file not found: {args.solver_prompt}"
 
     # Check validator prompt if provide
-    if args.solver_prompt and not args.solver_prompt.exists():
+    if args.validator_prompt and not args.validator_prompt.exists():
         return f"Validator prompt file not found: {args.validator_prompt}"
 
     # Validate max iterations
