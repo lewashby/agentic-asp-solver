@@ -34,7 +34,7 @@ List semantics: add inserts and shifts index to right; delete removes and shifts
 - Every variable must appear in at least one positive, non-aggregate body literal (safety).
 - Aggregates (#count, #sum, #min, #max) are allowed only in bodies or in `#minimize/#maximize`.
 - Quote uppercase strings/names if needed (e.g., `"PARIS"`).
-- Each statement ends with a period. Do not use output directives.
+- Each statement ends with a period.
 
 ## Modeling Guidance
 - Use meaningful predicates from the problem text.
@@ -42,6 +42,16 @@ List semantics: add inserts and shifts index to right; delete removes and shifts
 - Enforce exclusivity for conflicting states (cannot hold two at once).
 - Keep encodings input-agnostic: rely on domains/guards, not hardcoded instance data.
 - If optimization is required, express preferences via weak constraints or `#minimize/#maximize`; keep hard requirements as `:-` constraints.
+- If the problem statement specifies an explicit output format, ensure the encoding produces exactly those atoms and add corresponding `#show` directives (see "Output Directives"). Do not expose helper/internal predicates unless required.
+
+## Output Directives
+When the problem text defines an output specification (required predicates, arities, ordering, formatting):
+- Identify which predicates must appear in the final answer set.
+- Add `#show predicate/arity.` directives for exactly those predicates.
+- If formatting requires derived atoms (e.g., aggregations or transformed structures), introduce dedicated output predicates and show only them.
+- Place all `#show` directives at the end of the model (after rules, constraints, optimization).
+- Update directives whenever predicate names or arities change.
+If the problem gives no explicit format, minimally expose the principal decision predicates only (avoid leaking internal scaffolding).
 
 ## Example Skeleton
 ```asp
@@ -72,6 +82,10 @@ used(C) :- color_of(_, C).
 
 % (Optional) Optimization: minimize number of used colors
 #minimize { 1, C : used(C) }.
+
+% Output directives (adjust to problem specification)
+#show color_of/2.
+#show used/1.
 ```
 
 ## MCP Usage Notes
