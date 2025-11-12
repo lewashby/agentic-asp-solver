@@ -81,7 +81,8 @@ async def run_for_file(
             if result.statistics:
                 logger.info(
                     f"Usage: Total tokens={result.statistics.total_tokens}, "
-                    f"Tool calls={result.statistics.tool_calls}"
+                    f"Tool calls={result.statistics.tool_calls}, "
+                    f"Total time={result.statistics.total_time:.2f}s"
                 )
 
             # Log outcome

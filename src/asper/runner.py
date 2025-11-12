@@ -13,6 +13,7 @@ from asper.mcp_client import MCPClientManager
 from asper.prompts import PromptManager
 from asper.result import SolutionResult
 from asper.state import ASPState
+from asper.workflow import get_default_graph_config
 
 
 class ASPRunner:
@@ -58,7 +59,9 @@ class ASPRunner:
             SolutionResult with outcome and details
         """
         try:
+            import time
             self.logger.info(f"Starting Agentic ASP solver for: {problem_file}")
+            start_time = time.time()
 
             # Load problem
             problem = self._load_problem(problem_file)
@@ -82,6 +85,10 @@ class ASPRunner:
                 # Run the graph (session stays open during execution)
                 final_state = await self._run_graph(app, state)
 
+                # Total time taken
+                total_time = time.time() - start_time
+                final_state["total_time"] = total_time
+
             # Create result from final state
             result = SolutionResult.from_state(
                 final_state, success=final_state["is_validated"]
@@ -90,12 +97,12 @@ class ASPRunner:
             # Add completion message if max iterations reached
             if not result.success and result.iterations >= self.config.max_iterations:
                 result.message = (
-                    f"Max iterations ({self.config.max_iterations}) reached. "
+                    f"Max iterations ({self.config.max_iterations}) reached. Total time: {total_time:.2f} seconds. "
                     "Best attempt returned."
                 )
                 result.error_code = "MAX_ITER"
 
-            self.logger.info(f"Solving completed: {result.get_summary()}")
+            self.logger.info(f"Solving completed in {total_time:.2f} seconds: {result.get_summary()}")
             return result
 
         except ASPException as e:
@@ -213,10 +220,7 @@ class ASPRunner:
 
             final_state = await app.ainvoke(
                 state.model_dump(),
-                config={
-                    "configurable": {"thread_id": "1"},
-                    "recursion_limit": 50,
-                },
+                config=get_default_graph_config(),
             )
 
             self.logger.info(

@@ -25,7 +25,7 @@ dependencies = [
 
 [project.scripts]
 asper = "asper.main:cli"
-download-lpcp = "asper.scrapper:scrape_lpcp_problems"
+download-lpcp = "asper.scrapper:main"
 asper-batch = "asper.batch_runner:cli"
 
 [project.optional-dependencies]

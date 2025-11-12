@@ -11,6 +11,7 @@ class UsageStatistics:
     output_tokens: int = 0
     total_tokens: int = 0
     tool_calls: int = 0
+    total_time: float = 0.0 # in seconds
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -19,6 +20,7 @@ class UsageStatistics:
             "output_tokens": self.output_tokens,
             "total_tokens": self.total_tokens,
             "tool_calls": self.tool_calls,
+            "total_time": self.total_time,
         }
 
     @classmethod
@@ -29,6 +31,7 @@ class UsageStatistics:
             output_tokens=data.get("output_tokens", 0),
             total_tokens=data.get("total_tokens", 0),
             tool_calls=data.get("tool_calls", 0),
+            total_time=data.get("total_time", 0.0),
         )
 
 

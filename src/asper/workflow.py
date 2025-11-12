@@ -13,8 +13,20 @@ from langgraph.graph.state import CompiledStateGraph
 
 from asper.state import ASPState
 from asper.utils import get_logger
+from langchain_core.runnables import RunnableConfig
 
 logger = get_logger()
+
+def get_default_graph_config(
+    thread_id: str = "1",
+    recursion_limit: int = 100,
+) -> RunnableConfig:
+    return RunnableConfig(
+        {
+            "configurable": {"thread_id": thread_id},
+            "recursion_limit": recursion_limit,
+        },
+    )
 
 
 async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> dict:
@@ -38,12 +50,15 @@ async def call_agent(history: list[AnyMessage], agent: CompiledStateGraph) -> di
     try:
         logger.debug("Starting agent astream with %d history messages", len(history))
         async for chunk in agent.astream(
-            {"messages": history}, config={"recursion_limit": 50}, stream_mode="updates"
+            {"messages": history},
+            config=get_default_graph_config(),
+            stream_mode="updates",
         ):
             if not chunk:
                 continue
             node_name = next(iter(chunk.keys()))
             node_output = chunk[node_name]
+
             if "messages" in node_output:
                 for msg in node_output["messages"]:
                     if node_name == "tools":

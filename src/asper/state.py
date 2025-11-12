@@ -61,6 +61,7 @@ class ASPState(BaseModel):
         "output_tokens": 0,
         "total_tokens": 0,
         "tool_calls": 0,
+        "total_time": 0.0, # in seconds
     }
 
     # Error code if any error occurred
