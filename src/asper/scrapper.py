@@ -76,7 +76,7 @@ def get_additional_output_text(year: int, problem_number: int) -> str | None:
             5: "Output facts format:\nright(R,C).\nbottom(R,C).",
         },
         2021: {
-            1: "Output facts format:\nfrog(R,C).\nselect((R1,C1),(R2,C2),S).",
+            1: "Output facts format:\nfrog(R,C).\nselect((R1,C1),(R2,C2)).",
             2: "Output facts format:\npair((R1,C1),(R2,C2),S).",
             3: "Output facts format:\ninitial(R,C,type,orientation).\nfinal(R,C,type,orientation).",
             4: "Output facts format:\npair(T,From,To).\nbottle(0,B,I,value).",
