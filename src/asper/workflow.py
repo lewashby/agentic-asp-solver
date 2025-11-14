@@ -274,13 +274,14 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
         is_valid = "VALIDATION PASSED" in agent_response.upper()
         logger.info("Validation result: %s", "PASSED" if is_valid else "FAILED")
 
-        postprocessed_asp_code, unused_heads = analyze_asp_code(state.asp_code)
-        logger.info("Validator found and commented out %d unused rules", len(unused_heads))
+        if is_valid:
+            postprocessed_asp_code, unused_heads = analyze_asp_code(state.asp_code)
+            logger.info("Validator found and commented out %d unused rules", len(unused_heads))
 
         return {
             "is_validated": is_valid,
             "last_feedback": agent_response,
-            "asp_code": postprocessed_asp_code,
+            "asp_code": postprocessed_asp_code if is_valid else state.asp_code,
             "validation_history": result["messages"],
             "statistics": result["statistics"],
         }
