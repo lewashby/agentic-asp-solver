@@ -53,10 +53,6 @@ async def main() -> None:
             print("See .env.example for reference.")
             return
 
-        logger.info(
-            f"Configuration: model={config.model_name}, max_iterations={config.max_iterations}"
-        )
-
         # Create and run solver
         try:
             runner = ASPRunner(config, logger)

@@ -39,6 +39,7 @@ class ASPRunner:
         """
         self.config = config
         self.logger = logger or logging.getLogger(__name__)
+        self.logger.info(f"Configuration: model={config.model_name}, max_iterations={config.max_iterations}")
 
         try:
             self.mcp_manager = MCPClientManager(config)
