@@ -233,7 +233,7 @@ def analyze_asp_code(asp_code: str) -> tuple[str, set]:
         rule = next((r for r in rules if r[0] == i), None)
         if rule:
             head_preds, _ = rule[1], rule[2]
-            if all(h in unused_heads for h in head_preds):
+            if head_preds and all(h in unused_heads for h in head_preds):
                 line = "% " + line  # comment it
         output_lines.append(line)
 
