@@ -214,8 +214,17 @@ def analyze_asp_code(asp_code: str) -> tuple[str, set]:
             head_part, body_part = line, ''
 
         # Find predicates in head and body
-        head_preds = extract_predicates(head_part)
+        # Find predicates in head and body
+        # Treat predicates after ':' in aggregates as body predicates
+        aggregate_conditions = re.findall(r':\s*([^}]+)', head_part)
+        head_part_clean = re.sub(r':\s*[^}]+', '', head_part)  # Remove aggregate conditions from head
+
+        head_preds = extract_predicates(head_part_clean)
         body_preds = extract_predicates(body_part)
+
+        # Add predicates from aggregate conditions to body
+        for cond in aggregate_conditions:
+            body_preds.extend(extract_predicates(cond))
 
         for h in head_preds:
             heads.add(h)
