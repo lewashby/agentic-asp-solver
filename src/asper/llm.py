@@ -21,7 +21,7 @@ def build_llm(config: ASPSystemConfig) -> ChatOpenAI | ChatOllama:
 
     # Build LLM based on specified type
     # ChatOllama
-    if config.chat_model_type == "ollama":
+    if config.provider == "ollama":
         logger.info(
             f"Initializing ChatOllama with model={config.model_name}, "
             f"temperature={config.temperature}, reasoning={config.reasoning}"

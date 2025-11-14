@@ -43,10 +43,10 @@ class ASPSystemConfig(BaseModel):
     """Configuration for the ASP multi-agent system.
 
     Attributes:
-        chat_model_type: Chat model type ('openai' or 'ollama', default: 'ollama')
+        provider: LLM provider ('openrouter' or 'ollama', default: 'ollama')
         model_name: LLM model identifier (default: 'gpt-oss:20b')
         temperature: Sampling temperature (default: 0.0)
-        base_url: OpenAI-compatible API endpoint (default: Ollama)
+        base_url: OpenAI-compatible API endpoint (default: http://localhost:11434/v1)
         api_key: API key (default: 'ollama' for local models)
         reasoning: Reasoning level for reasoning models ('low', 'medium', 'high', or bool)
         solver_prompt_file: Optional custom solver prompt file path
@@ -56,7 +56,7 @@ class ASPSystemConfig(BaseModel):
     """
 
     # LLM configuration
-    chat_model_type: str = "ollama"  # 'openai' or 'ollama'
+    provider: str = "ollama"  # 'openrouter' or 'ollama'
     model_name: str = "gpt-oss:20b"
     temperature: float = 0.0
     base_url: str = "http://localhost:11434/v1"  # Ollama default
@@ -73,10 +73,10 @@ class ASPSystemConfig(BaseModel):
     # System behavior
     max_iterations: int = 5
 
-    @field_validator("chat_model_type")
+    @field_validator("provider")
     @classmethod
-    def validate_chat_model_type(cls, v):
-        """Validate chat_model_type is either 'openai' or 'ollama'.
+    def validate_provider(cls, v):
+        """Validate provider is either 'openrouter' or 'ollama'.
 
         Args:
             v: Chat model type string
@@ -85,10 +85,10 @@ class ASPSystemConfig(BaseModel):
             Validated chat model type
 
         Raises:
-            ValueError: If chat_model_type is not 'openai' or 'ollama'
+            ValueError: If provider is not 'openrouter' or 'ollama'
         """
-        if v.lower() not in ["openai", "ollama"]:
-            raise ValueError("chat_model_type must be 'openai' or 'ollama'")
+        if v.lower() not in ["openrouter", "ollama"]:
+            raise ValueError("provider must be 'openrouter' or 'ollama'")
         return v.lower()
 
     @field_validator("reasoning")
@@ -124,7 +124,7 @@ class ASPSystemConfig(BaseModel):
         """Load configuration from environment variables with optional overrides.
 
         Reads MCP_SOLVER_COMMAND, MCP_SOLVER_ARGS (required), MODEL_NAME,
-        OPENAI_BASE_URL, OPENAI_API_KEY, TEMPERATURE, and MAX_ITERATIONS.
+        PROVIDER_BASE_URL, PROVIDER_API_KEY, TEMPERATURE, and MAX_ITERATIONS.
 
         Args:
             **overrides: Configuration values to override from environment
@@ -161,11 +161,11 @@ class ASPSystemConfig(BaseModel):
 
         # Build base configuration from environment
         config_dict = {
-            "chat_model_type": os.getenv("CHAT_MODEL_TYPE", "ollama"),
+            "provider": os.getenv("PROVIDER", "ollama"),
             "model_name": os.getenv("MODEL_NAME", "gpt-oss:20b"),
             "temperature": float(os.getenv("TEMPERATURE", "0.0")),
-            "base_url": os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1"),
-            "api_key": os.getenv("OPENAI_API_KEY", "ollama"),
+            "base_url": os.getenv("PROVIDER_BASE_URL", "http://localhost:11434/v1"),
+            "api_key": os.getenv("PROVIDER_API_KEY", "ollama"),
             "reasoning": os.getenv("REASONING_LEVEL", False),
             "max_iterations": int(os.getenv("MAX_ITERATIONS", "5")),
             "mcp_servers": {

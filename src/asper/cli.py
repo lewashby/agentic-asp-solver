@@ -51,11 +51,11 @@ Examples:
     )
 
     parser.add_argument(
-        "--chat-model-type",
+        "--provider",
         type=str,
-        choices=["openai", "ollama"],
+        choices=["openrouter", "ollama"],
         default=None,
-        help="Chat model type: 'openai' or 'ollama' (default: from env or 'ollama')",
+        help="Providers: 'openrouter' or 'ollama' (default: from env or 'ollama')",
     )
 
     parser.add_argument(
@@ -143,11 +143,11 @@ Examples:
     )
 
     parser.add_argument(
-        "--chat-model-type",
+        "--provider",
         type=str,
-        choices=["openai", "ollama"],
+        choices=["openrouter", "ollama"],
         default=None,
-        help="Chat model type: 'openai' or 'ollama' (default: from env or 'ollama')",
+        help="Providers: 'openrouter' or 'ollama' (default: from env or 'ollama')",
     )
 
     parser.add_argument(

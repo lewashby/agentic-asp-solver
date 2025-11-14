@@ -122,7 +122,7 @@ async def main() -> None:
         max_iterations=args.max_iterations,
         solver_prompt_file=args.solver_prompt,
         validator_prompt_file=args.validator_prompt,
-        chat_model_type=args.chat_model_type,
+        provider=args.provider,
         reasoning=args.reasoning,
     )
 
