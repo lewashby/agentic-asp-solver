@@ -23,6 +23,7 @@ This project implements a multi-agent system that can:
 - **Natural language interface**: Describe problems in plain English
 - **Iterative refinement**: Automatically improves solutions based on validation feedback
 - **MCP integration**: Leverages external tools for enhanced problem-solving
+- **Web Interface**: Interactive Streamlit-based UI for testing and experimentation
 
 ## Quick Start
 
@@ -57,8 +58,8 @@ MCP_SOLVER_ARGS=--directory,absolute_path,run,mcp-solver-asp
 
 # Ollama-friendly model defaults (override if needed):
 MODEL_NAME=gpt-oss:20b
-OPENAI_BASE_URL=http://localhost:11434/v1
-OPENAI_API_KEY=ollama
+PROVIDER_BASE_URL=http://localhost:11434/v1
+PROVIDER_API_KEY=ollama
 ```
 
 **Run**:
@@ -73,6 +74,24 @@ asper .\examples\graph_coloring.md
 
 - Results exported to `results/...` (`.json` and generated `.lp`).
 - Logs written to `results/....log`.
+
+### Web Interface
+
+Launch the interactive web application for testing and experimentation:
+
+```bash
+asper-webapp
+```
+
+Once launched, open your browser to the URL shown in the terminal (typically `http://localhost:8501`).
+
+**Web App Features**:
+- **Problem Description**: Enter your ASP problem in natural language
+- **Custom Prompts**: Override default solver and validator system prompts
+- **Live Logging**: Watch the agent's reasoning process in real-time
+- **Results Viewer**: See generated ASP code and JSON results
+- **Stop Control**: Interrupt long-running executions
+- **Configuration**: Adjust model, temperature, iterations, and more
 
 ### LLM backend (Ollama)
 
@@ -93,8 +112,8 @@ ollama pull gpt-oss:20b
 
 ```bash
 MODEL_NAME=gpt-oss:20b
-# OPENAI_BASE_URL=http://localhost:11434/v1
-# OPENAI_API_KEY=ollama
+# PROVIDER_BASE_URL=http://localhost:11434/v1
+# PROVIDER_API_KEY=ollama
 ```
 
 ## Examples
@@ -173,7 +192,7 @@ asper-batch \
 asper-batch --model gpt-oss:20b --max-iterations 6
 ```
 
-Note: Ensure your environment variables (e.g., `MODEL_NAME`, `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and MCP settings like `MCP_SOLVER_ARGS`) are configured as described above before running the batch.
+Note: Ensure your environment variables (e.g., `MODEL_NAME`, `PROVIDER_BASE_URL`, `PROVIDER_API_KEY`, and MCP settings like `MCP_SOLVER_ARGS`) are configured as described above before running the batch.
 
 ## Project Structure
 
@@ -193,7 +212,7 @@ pytest
 
 ## Troubleshooting
 
-- Model 404s: the `MODEL_NAME` is not available on `OPENAI_BASE_URL` (pull or change the model).
+- Model 404s: the `MODEL_NAME` is not available on `PROVIDER_BASE_URL` (pull or change the model).
 - MCP "Connection closed": re-check `MCP_SOLVER_ARGS` absolute path after `--directory` and verify mcp-solver install.
 - Validator skips if `asp_code` is empty: ensure the solver produced code before expecting a PASS.
 

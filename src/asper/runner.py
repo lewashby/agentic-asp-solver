@@ -88,7 +88,7 @@ class ASPRunner:
 
                 # Total time taken
                 total_time = time.time() - start_time
-                final_state["total_time"] = total_time
+                final_state["statistics"]["total_time"] = total_time
 
             # Create result from final state
             result = SolutionResult.from_state(

@@ -21,12 +21,14 @@ dependencies = [
     "langgraph-cli[inmem]>=0.4.4",
     "mcp>=1.19.0",
     "python-dotenv>=1.2.1",
+    "streamlit>=1.51.0",
 ]
 
 [project.scripts]
 asper = "asper.main:cli"
 download-lpcp = "asper.scrapper:main"
 asper-batch = "asper.batch_runner:cli"
+asper-webapp = "asper.webapp:run_streamlit"
 
 [project.optional-dependencies]
 dev = ["mypy>=1.18.2", "ruff>=0.13.1"]
