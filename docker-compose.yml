@@ -1,0 +1,26 @@
+
+services:
+  asper:
+    build: .
+    container_name: agentic-asp-solver
+    ports:
+      - "8501:8501"
+    environment:
+      # LLM Configuration
+      - MODEL_NAME=${MODEL_NAME}
+      - PROVIDER_BASE_URL=${PROVIDER_BASE_URL}
+      - PROVIDER_API_KEY=${PROVIDER_API_KEY}
+      
+      # MCP Solver Configuration
+      - MCP_SOLVER_COMMAND=uv
+      - MCP_SOLVER_ARGS=--directory,/mcp-solver,run,mcp-solver-asp
+      
+      # Optional: Additional settings
+      - MAX_ITERATIONS=${MAX_ITERATIONS}
+      - TEMPERATURE=${TEMPERATURE}
+    
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    
+    restart: unless-stopped

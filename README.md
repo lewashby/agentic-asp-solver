@@ -51,15 +51,30 @@ uv pip install -e ".[asp]"  # Install asp solver
 **Set up environment**:
 
 ```bash
-cp .env.example .env
-# Required for MCP (adjust absolute path after --directory):
-MCP_SOLVER_COMMAND=uv
-MCP_SOLVER_ARGS=--directory,absolute_path,run,mcp-solver-asp
-
-# Ollama-friendly model defaults (override if needed):
+# Chat Model Configuration
+PROVIDER=ollama  # 'openrouter' or 'ollama'
 MODEL_NAME=gpt-oss:20b
 PROVIDER_BASE_URL=http://localhost:11434/v1
 PROVIDER_API_KEY=ollama
+TEMPERATURE=0.0
+
+# Reasoning Configuration (for reasoning models)
+# Can be: low, medium, high, true, or false
+REASONING_LEVEL=false
+
+# MCP Solver Configuration
+MCP_SOLVER_ARGS=--directory,absolute_path_to_folder,run,mcp-solver-asp
+MCP_SOLVER_COMMAND=uv
+MCP_SOLVER_TRANSPORT=stdio
+
+# Langsmith Configuration
+LANGSMITH_API_KEY=kjbxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+LANGSMITH_TRACING=false
+
+# General Configuration
+MAX_ITERATIONS=5
+LOG_LEVEL=INFO
+EXPORT_PATH=results
 ```
 
 **Run**:
@@ -75,45 +90,72 @@ asper .\examples\graph_coloring.md
 - Results exported to `results/...` (`.json` and generated `.lp`).
 - Logs written to `results/....log`.
 
-### Web Interface
+## Web Interface
 
-Launch the interactive web application for testing and experimentation:
+Run with Docker (no local installs):
+```bash
+cp .env.example .env  # optional overrides
+# Edit .env if needed:
+# MODEL_NAME=gpt-oss:20b
+# PROVIDER_BASE_URL=http://host.docker.internal:11434/v1
+# PROVIDER_API_KEY=ollama
 
+docker compose up --build
+```
+
+Open:
+- http://localhost:8501
+
+Stop:
+```bash
+docker compose down
+```
+
+Notes:
+- Uses host.docker.internal to reach the host LLM; see “LLM backend (Ollama or OpenRouter)” for setup
+- MCP Solver is preinstalled in the image; no host install needed
+
+Run locally (optional, if you installed dependencies):
 ```bash
 asper-webapp
 ```
 
-Once launched, open your browser to the URL shown in the terminal (typically `http://localhost:8501`).
+#### Web App Features
+- Problem Description: Enter your ASP problem in natural language
+- Custom Prompts: Override default solver and validator system prompts
+- Live Logging: Watch the agent’s reasoning process in real-time
+- Results Viewer: See generated ASP code and JSON results
+- Stop Control: Interrupt long-running executions
+- Configuration: Adjust model, temperature, iterations, and more
 
-**Web App Features**:
-- **Problem Description**: Enter your ASP problem in natural language
-- **Custom Prompts**: Override default solver and validator system prompts
-- **Live Logging**: Watch the agent's reasoning process in real-time
-- **Results Viewer**: See generated ASP code and JSON results
-- **Stop Control**: Interrupt long-running executions
-- **Configuration**: Adjust model, temperature, iterations, and more
+### LLM backend (Ollama or OpenRouter)
 
-### LLM backend (Ollama)
-
-- This project uses Ollama as the LLM backend by default (`http://localhost:11434/v1`). Ensure an Ollama server is running.
+Ollama (local):
+- This project uses Ollama as the LLM backend by default. Ensure an Ollama server is running.
 - Install Ollama from `https://ollama.com` and start the server (on most systems it runs automatically). To start manually:
-
 ```bash
 ollama serve
 ```
-
 - Pull or choose a local model:
-
 ```bash
 ollama pull gpt-oss:20b
 ```
-
 - Optionally set the model via `.env`:
-
 ```bash
+PROVIDER=ollama
 MODEL_NAME=gpt-oss:20b
 # PROVIDER_BASE_URL=http://localhost:11434/v1
 # PROVIDER_API_KEY=ollama
+```
+
+OpenRouter:
+- Set the provider to OpenRouter via environment variables:
+```bash
+# .env or docker-compose environment
+PROVIDER=openrouter
+MODEL_NAME=openai/gpt-5   # or any model from https://openrouter.ai/models
+PROVIDER_BASE_URL=https://openrouter.ai/api/v1
+PROVIDER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ## Examples
