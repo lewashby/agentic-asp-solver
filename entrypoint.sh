@@ -12,6 +12,8 @@ export MCP_SOLVER_ARGS=${MCP_SOLVER_ARGS:-"--directory,/mcp-solver,run,mcp-solve
 export MODEL_NAME=${MODEL_NAME:-gpt-oss:20b}
 export PROVIDER_BASE_URL=${PROVIDER_BASE_URL:-http://host.docker.internal:11434/v1}
 export PROVIDER_API_KEY=${PROVIDER_API_KEY:-ollama}
+export LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-langsmith}
+export LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
 
 # Run the command
 if [ "$1" = "webapp" ]; then

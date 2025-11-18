@@ -14,6 +14,10 @@ services:
       # MCP Solver Configuration
       - MCP_SOLVER_COMMAND=uv
       - MCP_SOLVER_ARGS=--directory,/mcp-solver,run,mcp-solver-asp
+
+      # LangSmith Configuration
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING}
       
       # Optional: Additional settings
       - MAX_ITERATIONS=${MAX_ITERATIONS}

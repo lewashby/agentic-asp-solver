@@ -10,8 +10,7 @@ This project implements a multi-agent system that can:
 - Iteratively refine solutions based on feedback
 - Use MCP (Model Context Protocol) tools for enhanced capabilities
 
-## Architecture at a glance
-
+## Architecture
 - Orchestrator: `ASPRunner` loads a problem, builds initial `ASPState`, opens an MCP session via `MCPClientManager`, compiles the graph, runs it, and exports results.
 - Agents and control flow: `create_asp_system` builds two ReAct agents (solver with full MCP access; validator restricted to `solve_model` and `add_item`). `workflow.should_continue` loops solver→validator until validated or `max_iterations`.
 - State: `ASPState` keys: `problem_description`, `asp_code`, `messages`, `validation_history`, `iteration_count`, `max_iterations`, `is_validated`, `answer_set`, `statistics`.
@@ -119,6 +118,35 @@ Run locally (optional, if you installed dependencies):
 ```bash
 asper-webapp
 ```
+
+#### Using an external Ollama via SSH tunneling
+If your Ollama server runs on a remote machine (not on the Docker host), you can create an SSH tunnel from inside the container so the app can access it at http://localhost:11434/v1:
+
+1) Ensure SSH access to the remote host (key-based auth recommended).
+2) Provide SSH keys to the container (uncomment and adjust in docker-compose.yml):
+```yaml
+# volumes:
+#   - ~/.ssh:/root/.ssh:ro
+#   # Windows example:
+#   # - C:/Users/<you>/.ssh:/root/.ssh:ro
+```
+3) Set the following environment variables (in your .env or compose environment):
+```bash
+# Enable the tunnel and set remote destination
+OLLAMA_TUNNEL_ENABLE=true
+OLLAMA_SSH_HOST=remote.example.com
+OLLAMA_SSH_USER=youruser
+# Optional ports (defaults shown)
+OLLAMA_LOCAL_PORT=11434
+OLLAMA_REMOTE_PORT=11434
+# Use the tunneled endpoint inside the container
+PROVIDER_BASE_URL=http://localhost:11434/v1
+```
+4) Start the stack:
+```bash
+docker compose up --build
+```
+The entrypoint will open an SSH local port-forward to the remote Ollama and route LLM traffic through it.
 
 #### Web App Features
 - Problem Description: Enter your ASP problem in natural language
