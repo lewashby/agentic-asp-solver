@@ -202,6 +202,21 @@ def analyze_asp_code(asp_code: str) -> tuple[str, set]:
             for p in extract_predicates(line):
                 facts.add(p)
 
+        # Collect predicate usages from directives (#minimize/#maximize) and weak constraints (:~)
+        if stripped.startswith('#'):
+            # Extract predicates inside braces of directives, e.g., #minimize { A : area(A) }.
+            for brace_content in re.findall(r'\{([^}]*)\}', line):
+                for p in extract_predicates(brace_content):
+                    bodies.add(p)
+        elif stripped.startswith(':~'):
+            # Weak constraints: treat the part before '.' as body; also extract predicates inside brackets.
+            body_part = stripped.split('.', 1)[0]
+            for p in extract_predicates(body_part):
+                bodies.add(p)
+            for bracket_content in re.findall(r'\[([^]]*)\]', line):
+                for p in extract_predicates(bracket_content):
+                    bodies.add(p)
+
     # Step 2: Parse rules
     for i, line in enumerate(lines):
         if line.strip().startswith('%') or line.strip().startswith('#') or not line.strip():
@@ -213,7 +228,6 @@ def analyze_asp_code(asp_code: str) -> tuple[str, set]:
         else:
             head_part, body_part = line, ''
 
-        # Find predicates in head and body
         # Find predicates in head and body
         # Treat predicates after ':' in aggregates as body predicates
         aggregate_conditions = re.findall(r':\s*([^}]+)', head_part)
