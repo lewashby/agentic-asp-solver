@@ -142,7 +142,7 @@ class SolutionResult:
         Returns:
             SolutionResult representing the error
         """
-        from asper.exceptions import ASPException, classify_exception
+        from almasp.exceptions import ASPException, classify_exception
 
         if isinstance(exception, ASPException):
             return cls.error(exception.code, exception.message)

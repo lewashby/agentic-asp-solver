@@ -7,7 +7,7 @@ plus a PromptManager for loading custom prompt overrides from files.
 from dataclasses import dataclass
 from pathlib import Path
 
-from asper.exceptions import FileError
+from almasp.exceptions import FileError
 
 SOLVER_SYSTEM_PROMPT = """You are an expert Answer Set Programming (ASP) solver agent.
 

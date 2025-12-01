@@ -1,5 +1,5 @@
 """Agent package entrypoint."""
 
-from asper.main import main
+from almasp.main import main
 
 __all__ = ["main"]

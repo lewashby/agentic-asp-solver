@@ -25,10 +25,10 @@ dependencies = [
 ]
 
 [project.scripts]
-asper = "asper.main:cli"
-download-lpcp = "asper.scrapper:main"
-asper-batch = "asper.batch_runner:cli"
-asper-webapp = "asper.webapp:run_streamlit"
+almasp = "almasp.main:cli"
+download-lpcp = "almasp.scrapper:main"
+almasp-batch = "almasp.batch_runner:cli"
+almasp-webapp = "almasp.webapp:run_streamlit"
 
 [project.optional-dependencies]
 dev = ["mypy>=1.18.2", "ruff>=0.13.1"]
@@ -38,9 +38,9 @@ requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["asper"]
+packages = ["almasp"]
 [tool.setuptools.package-dir]
-"asper" = "src/asper"
+"almasp" = "src/almasp"
 
 
 [tool.setuptools.package-data]

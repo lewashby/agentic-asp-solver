@@ -16,8 +16,8 @@ from io import StringIO
 import streamlit as st
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 
-from asper.config import ASPSystemConfig
-from asper.runner import ASPRunner
+from almasp.config import ASPSystemConfig
+from almasp.runner import ASPRunner
 
 
 # ============================================================================
@@ -93,7 +93,7 @@ def _create_temp_prompt_file(prompt_text: str, prefix: str) -> str | None:
 def setup_logging(log_stream: StringIO, log_level: str) -> logging.Logger:
     """Configure logging to capture all output to a string stream."""
     # Main webapp logger
-    logger = logging.getLogger("asper_webapp")
+    logger = logging.getLogger("almasp_webapp")
     logger.setLevel(getattr(logging, log_level))
     logger.handlers.clear()
     logger.propagate = False
@@ -555,7 +555,7 @@ def main():
 # ============================================================================
 
 def run_streamlit():
-    """Entry point for the asper-webapp command."""
+    """Entry point for the almasp-webapp command."""
     webapp_path = Path(__file__).resolve()
     subprocess.run([sys.executable, "-m", "streamlit", "run", str(webapp_path)])
 

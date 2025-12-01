@@ -11,8 +11,8 @@ from anyio import ClosedResourceError
 from langchain_core.messages import AnyMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph
 
-from asper.state import ASPState
-from asper.utils import analyze_asp_code, get_logger
+from almasp.state import ASPState
+from almasp.utils import analyze_asp_code, get_logger
 from langchain_core.runnables import RunnableConfig
 
 logger = get_logger()

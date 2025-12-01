@@ -1,6 +1,6 @@
 
 services:
-  asper:
+  almasp:
     build: .
     container_name: agentic-asp-solver
     ports:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def build_cli_parser() -> argparse.ArgumentParser:
-    """Build CLI argument parser for main asper command.
+    """Build CLI argument parser for main almasp command.
 
     Returns:
         Configured ArgumentParser instance
@@ -15,9 +15,9 @@ def build_cli_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  asper problem.md
-  asper problem.md --model gpt-oss:20b
-  asper problem.md --solver-prompt custom_solver.md --max-iterations 10
+  almasp problem.md
+  almasp problem.md --model gpt-oss:20b
+  almasp problem.md --solver-prompt custom_solver.md --max-iterations 10
         """,
     )
 
@@ -97,13 +97,13 @@ def build_batch_cli_parser() -> argparse.ArgumentParser:
         Configured ArgumentParser for batch operations
     """
     parser = argparse.ArgumentParser(
-        description="Run asper over all LPCP problems",
+        description="Run almasp over all LPCP problems",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  asper-batch
-  asper-batch --years 2022,2023
-  asper-batch --root my_problems/ --model gpt-oss:20b
+  almasp-batch
+  almasp-batch --years 2022,2023
+  almasp-batch --root my_problems/ --model gpt-oss:20b
         """,
     )
 

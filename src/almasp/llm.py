@@ -4,8 +4,8 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from pydantic import SecretStr
 
-from asper.config import ASPSystemConfig
-from asper.utils import get_logger
+from almasp.config import ASPSystemConfig
+from almasp.utils import get_logger
 
 logger = get_logger()
 

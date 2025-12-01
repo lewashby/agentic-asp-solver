@@ -17,11 +17,11 @@ export LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
 
 # Run the command
 if [ "$1" = "webapp" ]; then
-    exec asper-webapp --server.address=0.0.0.0
+    exec almasp-webapp --server.address=0.0.0.0
 elif [ "$1" = "batch" ]; then
-    exec asper-batch "${@:2}"
+    exec almasp-batch "${@:2}"
 elif [ "$1" = "download-lpcp" ]; then
     exec download-lpcp "${@:2}"
 else
-    exec asper "$@"
+    exec almasp "$@"
 fi

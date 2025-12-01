@@ -7,8 +7,8 @@ from typing import AsyncIterator
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from asper.config import ASPSystemConfig, MCPServerConfig
-from asper.exceptions import MCPError, classify_exception
+from almasp.config import ASPSystemConfig, MCPServerConfig
+from almasp.exceptions import MCPError, classify_exception
 
 
 class MCPClientManager:

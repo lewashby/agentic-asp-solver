@@ -6,10 +6,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from asper.cli import build_cli_parser, validate_cli_args
-from asper.config import ASPSystemConfig
-from asper.runner import ASPRunner
-from asper.utils import export_solution, setup_logger
+from almasp.cli import build_cli_parser, validate_cli_args
+from almasp.config import ASPSystemConfig
+from almasp.runner import ASPRunner
+from almasp.utils import export_solution, setup_logger
 
 # Load environment variables first
 load_dotenv()

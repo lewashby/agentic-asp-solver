@@ -7,10 +7,10 @@ from typing import Iterable
 
 from dotenv import load_dotenv
 
-from asper.cli import build_batch_cli_parser, validate_cli_args
-from asper.config import ASPSystemConfig
-from asper.runner import BatchRunner
-from asper.utils import export_solution, reset_logger, setup_logger
+from almasp.cli import build_batch_cli_parser, validate_cli_args
+from almasp.config import ASPSystemConfig
+from almasp.runner import BatchRunner
+from almasp.utils import export_solution, reset_logger, setup_logger
 
 load_dotenv()
 

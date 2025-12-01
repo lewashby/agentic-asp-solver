@@ -6,14 +6,14 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage
 from langgraph.graph.state import CompiledStateGraph
 
-from asper.config import ASPSystemConfig
-from asper.exceptions import ASPException, FileError, classify_exception
-from asper.llm import build_llm
-from asper.mcp_client import MCPClientManager
-from asper.prompts import PromptManager
-from asper.result import SolutionResult
-from asper.state import ASPState
-from asper.workflow import get_default_graph_config
+from almasp.config import ASPSystemConfig
+from almasp.exceptions import ASPException, FileError, classify_exception
+from almasp.llm import build_llm
+from almasp.mcp_client import MCPClientManager
+from almasp.prompts import PromptManager
+from almasp.result import SolutionResult
+from almasp.state import ASPState
+from almasp.workflow import get_default_graph_config
 
 
 class ASPRunner:
@@ -145,7 +145,7 @@ class ASPRunner:
         Returns:
             Compiled LangGraph application
         """
-        from asper.graph import create_asp_system
+        from almasp.graph import create_asp_system
 
         # Build LLM
         llm = build_llm(self.config)
@@ -214,7 +214,7 @@ class ASPRunner:
         Raises:
             GraphExecutionError: If graph execution fails
         """
-        from asper.exceptions import GraphExecutionError
+        from almasp.exceptions import GraphExecutionError
 
         try:
             self.logger.info("Starting graph execution")

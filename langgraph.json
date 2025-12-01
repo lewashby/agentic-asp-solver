@@ -2,7 +2,7 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["."],
   "graphs": {
-    "agent": "./src/asper/graph.py:_create_agents_graph"
+    "agent": "./src/almasp/graph.py:_create_agents_graph"
   },
   "env": ".env",
   "image_distro": "wolfi"

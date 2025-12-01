@@ -79,9 +79,9 @@ EXPORT_PATH=results
 **Run**:
 
 ```bash
-asper -h
+almasp -h
 # Single run example:
-asper .\examples\graph_coloring.md
+almasp .\examples\graph_coloring.md
 ```
 
 ### Outputs
@@ -116,7 +116,7 @@ Notes:
 
 Run locally (optional, if you installed dependencies):
 ```bash
-asper-webapp
+almasp-webapp
 ```
 
 #### Using an external Ollama via SSH tunneling
@@ -173,7 +173,7 @@ PROVIDER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx
 Run:
 
 ```bash
-asper .\examples\birds_fly.md
+almasp .\examples\birds_fly.md
 ```
 
 ### Graph Coloring
@@ -183,7 +183,7 @@ asper .\examples\birds_fly.md
 Run:
 
 ```bash
-asper .\examples\graph_coloring.md
+almasp .\examples\graph_coloring.md
 ```
 
 ## LPCP Problems
@@ -208,12 +208,12 @@ lpcp_problems/
   ...
 ```
 
-### Run asper across all LPCP problems
+### Run almasp across all LPCP problems
 
 After downloading, run the batch executor to solve each problem file. By default it scans `lpcp_problems/` and processes `problem-1.md` and `problem-2.md` in each year folder:
 
 ```bash
-asper-batch
+almasp-batch
 ```
 
 Common options:
@@ -229,22 +229,22 @@ Examples:
 
 ```bash
 # Run only for 2022 and 2023
-asper-batch --years 2022,2023
+almasp-batch --years 2022,2023
 
 # Use custom prompts
-asper-batch \
+almasp-batch \
   --solver-prompt prompts/solver_instructions.md \
   --validator-prompt prompts/validator_instructions.md
 
 # Override model and iterations
-asper-batch --model gpt-oss:20b --max-iterations 6
+almasp-batch --model gpt-oss:20b --max-iterations 6
 ```
 
 Note: Ensure your environment variables (e.g., `MODEL_NAME`, `PROVIDER_BASE_URL`, `PROVIDER_API_KEY`, and MCP settings like `MCP_SOLVER_ARGS`) are configured as described above before running the batch.
 
 ## Project Structure
 
-- `src/asper/` - Core agent implementation
+- `src/almasp/` - Core agent implementation
 - `examples/` - Sample problems and use cases
 - `prompts/` - System prompts for different agent roles
 - `tests/` - Tests
