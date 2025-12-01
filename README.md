@@ -122,31 +122,9 @@ asper-webapp
 #### Using an external Ollama via SSH tunneling
 If your Ollama server runs on a remote machine (not on the Docker host), you can create an SSH tunnel from inside the container so the app can access it at http://localhost:11434/v1:
 
-1) Ensure SSH access to the remote host (key-based auth recommended).
-2) Provide SSH keys to the container (uncomment and adjust in docker-compose.yml):
-```yaml
-# volumes:
-#   - ~/.ssh:/root/.ssh:ro
-#   # Windows example:
-#   # - C:/Users/<you>/.ssh:/root/.ssh:ro
-```
-3) Set the following environment variables (in your .env or compose environment):
 ```bash
-# Enable the tunnel and set remote destination
-OLLAMA_TUNNEL_ENABLE=true
-OLLAMA_SSH_HOST=remote.example.com
-OLLAMA_SSH_USER=youruser
-# Optional ports (defaults shown)
-OLLAMA_LOCAL_PORT=11434
-OLLAMA_REMOTE_PORT=11434
-# Use the tunneled endpoint inside the container
-PROVIDER_BASE_URL=http://localhost:11434/v1
+ssh -L <11434>:<localhost>:<11434> <user>@<remote_server>
 ```
-4) Start the stack:
-```bash
-docker compose up --build
-```
-The entrypoint will open an SSH local port-forward to the remote Ollama and route LLM traffic through it.
 
 #### Web App Features
 - Problem Description: Enter your ASP problem in natural language
