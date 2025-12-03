@@ -115,7 +115,14 @@ Before modeling, explicitly classify the problem to select an appropriate ASP pa
 - Resource allocation/Knapsack: bounded resources, costs, utilities.
 - Ordering/Ranking/Sequencing: precedence, permutations, topological order.
 - Pure feasibility vs optimization: decide if #minimize/#maximize is required.
-Choose predicates and constraints aligned with the identified class; reuse the corresponding pattern snippets below.
+
+When choosing a pattern, prefer formulations that naturally limit grounding size:
+- derive domains from small, explicit parameters instead of using wide numeric ranges
+- avoid unnecessary Cartesian products in rule bodies; introduce intermediate predicates to factor joins
+- restrict aggregates to the minimal relevant domains and avoid “for all combinations” formulations
+- choose representations (for example, graph-based, assignment-based, or time-windowed encodings) that only introduce variables and atoms that are actually needed for constraints and output
+
+Choose predicates and constraints aligned with the identified class; reuse the corresponding pattern snippets below and adapt them so that they keep the grounded program as small and structured as possible.
 
 Minimal modeling discipline (do not overcomplicate):
 - Model only what is required to produce the requested output atoms and enforce mandatory constraints.
@@ -134,11 +141,24 @@ A graph model is suitable when:
 - The problem involves entities connected by relations, dependencies, conflicts, or compatibilities.
 - Constraints or objectives concern pairwise interactions, adjacency, or connectivity.
 - The reasoning can be expressed in terms of paths, grouping, exclusion, or network structure.
+- Many problems describe grids via predicates like clue(R,C,B) or cell(R,C,Val). In such cases, treat:
+  - each grid point or cell as a potential node (for example, point(R,C) or cell(R,C))
+  - horizontal, vertical, or diagonal adjacencies as edges (for example, edge(U,V))
+  Then express requirements such as acyclicity, degree constraints, or reachability over the induced graph instead of working only at the matrix level.
+  In grid-based settings where each cell must choose exactly one of two possible connections between its corner intersection nodes, and where some intersection nodes have degree constraints and the global structure must be acyclic, follow this general pattern:
+  - Represent grid points as numeric node IDs (for example, `node_id(R, C, ID)` mapping row/column to integer).
+  - Introduce a binary decision per cell using exactly-one choice rules (for example, `1 { option_a(R,C); option_b(R,C) } 1 :- cell(R,C).`).
+  - Derive canonical undirected edges `edge(U,V)` with `U < V` from cell-level decisions by mapping cell choices to their corresponding intersection node pairs.
+  - Define bidirectional adjacency as a helper predicate: `adj(U,V) :- edge(U,V). adj(V,U) :- edge(U,V).`
+  - Enforce local degree constraints on numbered or otherwise constrained nodes using aggregates over adjacent nodes: `:- node(N), degree(N,D), #count { M : adj(N,M) } != D.`
+  - Enforce global acyclicity using edge-avoiding reachability:
+    - Define reachability from a root excluding one forbidden edge: `reach(Root, V, Skip_U, Skip_V) :- ...`
+    - Forbid any edge `edge(U,V)` from allowing `U` to reach `V` again when that edge itself is excluded: `:- edge(U,V), reach(U,V,U,V).`
 
 Modeling guidance:
 - Identify entities as potential nodes and relationships as edges (directional, weighted, or typed as appropriate).
 - Express constraints and goals over this structure using predicates consistent with the domain and input context.
-- Do not assume fixed predicate names like node(X) or edge(X,Y); adapt them to fit the problem's terminology.
+- Do not always assume fixed predicate names like node(X) or edge(X,Y); try to adapt them to fit the problem's terminology, but it is also acceptable to use generic names such as node(X) and edge(X,Y) when appropriate.
 - Focus on uncovering the underlying graph structure that clarifies relationships and simplifies the ASP encoding.
 
 ### Plan Your Approach (MANDATORY - DO THIS FIRST!)
