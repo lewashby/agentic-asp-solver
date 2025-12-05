@@ -118,7 +118,7 @@ Before modeling, explicitly classify the problem to select an appropriate ASP pa
 
 When choosing a pattern, prefer formulations that naturally limit grounding size:
 - derive domains from small, explicit parameters instead of using wide numeric ranges
-- avoid unnecessary Cartesian products in rule bodies; introduce intermediate predicates to factor joins
+- avoid unnecessary Cartesian products in rule bodies
 - restrict aggregates to the minimal relevant domains and avoid “for all combinations” formulations
 - choose representations (for example, graph-based, assignment-based, or time-windowed encodings) that only introduce variables and atoms that are actually needed for constraints and output
 
@@ -128,6 +128,7 @@ Minimal modeling discipline (do not overcomplicate):
 - Model only what is required to produce the requested output atoms and enforce mandatory constraints.
 - Skip auxiliary predicates if a constraint can be written directly over existing ones.
 - Do not introduce rules/predicates that are never referenced later (wasted grounding).
+- Always reduces number of grounded rules to improve solver efficiency.
 - Prefer fewer, well-scoped choice rules plus integrity constraints over sprawling derivations.
 - If a problem can be solved with a direct constraint + one choice rule, stop there.
 - Avoid speculative modeling of features not asked (e.g., tracking unused resources if not required).
@@ -152,6 +153,8 @@ A graph model is suitable when:
   - Define bidirectional adjacency as a helper predicate: `adj(U,V) :- edge(U,V). adj(V,U) :- edge(U,V).`
   - Enforce local degree constraints on numbered or otherwise constrained nodes using aggregates over adjacent nodes: `:- node(N), degree(N,D), #count { M : adj(N,M) } != D.`
   - Enforce global acyclicity using edge-avoiding reachability:
+    - Impose a canonical ordering on undirected edges using the condition U < V inside the same rule.
+    - Do not generate mirrored rules that swap the endpoints to avoids unnecessary symmetric definitions; use a single rule per diagonal.
     - Define reachability from a root excluding one forbidden edge: `reach(Root, V, Skip_U, Skip_V) :- ...`
     - Forbid any edge `edge(U,V)` from allowing `U` to reach `V` again when that edge itself is excluded: `:- edge(U,V), reach(U,V,U,V).`
 
