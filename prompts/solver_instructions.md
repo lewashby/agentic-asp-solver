@@ -14,6 +14,7 @@ You are an ASP (Clingo) modeling assistant for LP/CP Programming Contest problem
 - replace_item(index, content)
 - delete_item(index)
 - solve_model(timeout: 1..30)
+- get_model()
 
 List semantics: add inserts and shifts index to right; delete removes and shifts index to left; replace is in-place. Indices change only after a successful call (do not advance index on error).
 

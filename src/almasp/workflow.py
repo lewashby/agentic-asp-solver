@@ -175,11 +175,7 @@ def create_validator_message(state: ASPState) -> list[AnyMessage]:
     content = f"""Original problem:
 {state.problem_description}
 
-ASP code to validate:
-
-{f"{state.asp_code}" if state.asp_code else "No code yet"}
-
-Please validate this ASP code against the problem requirements.
+Call get_model to obtain the current ASP code to validate it against the problem requirements.
 Use solve_model to test it and provide clear feedback on whether it's correct."""
     return [HumanMessage(content=content)]
 
@@ -252,18 +248,7 @@ async def validator_node(state: ASPState, validator_agent: CompiledStateGraph) -
             "messages": state.messages,
             "last_feedback": "Validation skipped due to existing error in workflow.",
         }
-    if (
-        state.asp_code == ""
-        or state.asp_code == "Sorry, need more steps to process this request."
-    ):
-        logger.warning("Validator skipped: no ASP code present yet")
-        return {
-            "is_validated": False,
-            "messages": state.messages,
-            "last_feedback": "No Answer Set Programming (ASP) code was provided. Please call get_model for obtaining the full ASP encoding.",
-        }
-
-    # Invoke the validator ReAct agent
+    
     try:
         result = await call_agent(message, validator_agent)
 

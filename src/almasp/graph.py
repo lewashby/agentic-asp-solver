@@ -63,7 +63,7 @@ async def create_asp_system(
 
     # Validator only needs solve_model and add_item tools
     validator_tools = [
-        tool for tool in tools if tool.name in ["solve_model", "add_item"]
+        tool for tool in tools if tool.name in ["get_model", "solve_model"]
     ]
 
     validator_agent = create_agent(
