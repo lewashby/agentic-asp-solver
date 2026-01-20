@@ -251,7 +251,7 @@ Note: Ensure your environment variables (e.g., `MODEL_NAME`, `PROVIDER_BASE_URL`
 
 ## Development
 
-The system uses LangGraph for orchestration and supports hot reload during development. Check out the LangGraph docs for more.
+The system uses LangGraph for orchestration, check out the LangGraph docs for more.
 
 ```bash
 # Tests
@@ -262,5 +262,4 @@ pytest
 
 - Model 404s: the `MODEL_NAME` is not available on `PROVIDER_BASE_URL` (pull or change the model).
 - MCP "Connection closed": re-check `MCP_SOLVER_ARGS` absolute path after `--directory` and verify mcp-solver install.
-- Validator skips if `asp_code` is empty: ensure the solver produced code before expecting a PASS.
 

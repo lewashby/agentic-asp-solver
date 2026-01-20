@@ -42,6 +42,7 @@ List semantics: add inserts and shifts index to right; delete removes and shifts
 - Generate candidates with choice rules; prune with integrity constraints.
 - Enforce exclusivity for conflicting states (cannot hold two at once).
 - Keep encodings input-agnostic: rely on domains/guards, not hardcoded instance data.
+- Problem descriptions sometimes include an input example, that needs to be transformed into the facts input format, and its expected output, that needs to be transformed from the output facts, use it to test the encoding.
 - If optimization is required, express preferences via weak constraints or `#minimize/#maximize`; keep hard requirements as `:-` constraints.
 - If the problem statement specifies an explicit output format, ensure the encoding produces exactly those atoms and add corresponding `#show` directives (see "Output Directives"). Do not expose helper/internal predicates unless required.
 
@@ -51,6 +52,7 @@ When the problem text defines an output specification (required predicates, arit
 - Add `#show predicate/arity.` directives for exactly those predicates.
 - If formatting requires derived atoms (e.g., aggregations or transformed structures), introduce dedicated output predicates and show only them.
 - Place all `#show` directives at the end of the model (after rules, constraints, optimization).
+- Always respect the arity for the facts in output.
 - Update directives whenever predicate names or arities change.
 If the problem gives no explicit format, minimally expose the principal decision predicates only (avoid leaking internal scaffolding).
 
