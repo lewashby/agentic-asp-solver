@@ -2,6 +2,11 @@
 
 LangGraph-driven multi-agent system that turns natural-language problem statements into Answer Set Programming (ASP) code, validates it with MCP tools, and iterates until correct.
 
+## Publication
+
+[![KR 2026](https://img.shields.io/badge/KR-2026-4b4bb7)](https://proceedings.kr.org/2026/103/)
+[![DOI](https://img.shields.io/badge/DOI-10.24963/kr.2026/103-blue)](https://doi.org/10.24963/kr.2026/103)
+
 ## Overview
 
 This project implements a multi-agent system that can:
